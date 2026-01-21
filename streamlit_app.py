@@ -7,6 +7,13 @@ from datetime import date
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 model = genai.GenerativeModel('models/gemini-1.5-flash')
 
+# Add this temporarily to check if the AI is alive
+try:
+    test_response = model.generate_content("Hi")
+    st.write("AI Connection: Success ✅")
+except Exception as e:
+    st.error(f"AI Connection Failed: {e}")
+
 st.set_page_config(page_title="AI Plant Parent", page_icon="🌱")
 st.title("🌱 AI Plant Parent")
 
