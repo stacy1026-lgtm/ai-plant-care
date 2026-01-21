@@ -5,7 +5,7 @@ from datetime import date
 
 # 1. Setup AI
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 st.set_page_config(page_title="AI Plant Parent", page_icon="🌱")
 st.title("🌱 AI Plant Parent")
