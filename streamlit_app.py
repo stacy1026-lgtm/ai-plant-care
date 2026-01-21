@@ -1,19 +1,14 @@
-# 1. Setup AI with a fail-safe model picker
+# 1. Setup AI with the specific stable path
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
-# We will try these names in order of most powerful to most compatible
-model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
-
-model = None
-for name in model_names:
-    try:
-        model = genai.GenerativeModel(name)
-        # Test if this specific name works
-        model.generate_content("test") 
-        st.success(f"Connected using: {name}")
-        break
-    except Exception:
-        continue
-
-if model is None:
-    st.error("Could not connect to any Gemini models. Please check your API Key.")
+# We use 'gemini-1.5-flash' but without the 'models/' prefix 
+# as the library often adds it automatically.
+try:
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    # This tiny test confirms the connection immediately
+    model.generate_content("test")
+    st.success("AI is Online! ✅")
+except Exception as e:
+    st.error(f"Connection Error: {e}")
+    # Fallback to the older stable version if Flash fails
+    model = genai.GenerativeModel('gemini-pro')
