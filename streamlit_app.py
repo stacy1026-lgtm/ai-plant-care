@@ -5,7 +5,11 @@ from datetime import date
 
 # 1. Setup AI
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+# Try the most common stable name
+try:
+    model = genai.GenerativeModel('gemini-1.5-pro')
+except:
+    model = genai.GenerativeModel('gemini-pro')
 
 # Add this temporarily to check if the AI is alive
 try:
