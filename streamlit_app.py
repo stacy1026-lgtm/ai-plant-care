@@ -13,18 +13,25 @@ except Exception as e:
 
 @st.cache_resource
 def get_best_model():
-    # Attempt the most stable model directly
-    m_name = 'models/gemini-1.5-flash'
-    try:
-        model = genai.GenerativeModel(m_name)
-        model.generate_content("test") # Verification call
-        return model, m_name
-    except Exception as e:
-        # This will show you the EXACT error from Google (e.g., Invalid API Key)
-        st.sidebar.error(f"Connection Error: {e}")
-        return None, "Connection Failed"
-
-model, active_model_name = get_best_model()
+    # Modern 2026 model aliases
+    test_models = [
+        'gemini-2.0-flash',        # Current standard
+        'gemini-1.5-flash-latest', # Best stable fallback
+        'gemini-pro'               # Legacy fallback
+    ]
+    
+    for m_name in test_models:
+        try:
+            model = genai.GenerativeModel(m_name)
+            # Verify the model actually responds
+            model.generate_content("ping") 
+            return model, m_name
+        except Exception as e:
+            # Logs the specific reason for failure in the sidebar for you
+            st.sidebar.warning(f"Skipping {m_name}: {e}")
+            continue
+            
+    return None, "All models failed"
 
 # 2. Connection & Data Loading (MUST come before the title)
 conn = st.connection("gsheets", type=GSheetsConnection)
