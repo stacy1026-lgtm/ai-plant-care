@@ -85,13 +85,38 @@ if submit_new_plant:
 st.divider()
 
 # 3. Individual Plant View
-st.subheader("Your Plant Collection")
-for index, row in df.iterrows():
-    with st.expander(f"🪴 {row['Plant Name']}"):
-        st.write(f"**Acquired:** {row['Acquisition Date']}")
-        st.write(f"**Last Watered:** {row['Last Watered Date']}")
+st.subheader("🤖 AI Watering Decisions")
+
+if not df.empty:
+    # 1. Prepare data for the AI
+    plants_list = df[['Plant Name', 'Last Watered Date']].to_string(index=False)
+    
+    # 2. Craft the prompt
+    ai_prompt = (
+        f"Today is {date.today()}. Based on these plants and their last watering dates:\n"
+        f"{plants_list}\n\n"
+        "Identify which specific plants likely need water today. "
+        "Consider typical houseplant needs (e.g., succulents need weeks, ferns need days). "
+        "Return ONLY the names of plants that need water, separated by commas. "
+        "If none, say 'None'."
+    )
+
+    # 3. Get AI Decision
+    with st.spinner("AI is analyzing your garden..."):
+        response = model.generate_content(ai_prompt)
+        decision = response.text.strip()
+
+    # 4. Filter and Display
+    if "None" in decision:
+        st.success("The AI thinks everyone is hydrated! ✨")
+    else:
+        # Convert AI string into a list of names
+        needs_water_names = [name.strip() for name in decision.split(',')]
         
-        if st.button(f"Analyze {row['Plant Name']}", key=f"btn_{index}"):
-            with st.spinner("Checking..."):
-                res = model.generate_content(f"I have a {row['Plant Name']} last watered {row['Last Watered Date']}. Advice?")
-                st.info(res.text)
+        # Display only those plants
+        for name in needs_water_names:
+            plant_row = df[df['Plant Name'] == name]
+            if not plant_row.empty:
+                with st.expander(f"💧 {name} (AI Recommendation)"):
+                    st.write(f"Last Watered: {plant_row.iloc[0]['Last Watered Date']}")
+                    st.info(f"The AI suggests watering {name} based on its typical species requirements.")
