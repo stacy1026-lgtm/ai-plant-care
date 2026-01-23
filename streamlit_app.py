@@ -41,7 +41,7 @@ today_str = date.today().strftime("%m/%d/%Y")
 df = conn.read(ttl=0) 
 
 # 2. FILTER for display, but KEEP the original index
-today_str = date.today().strftime("%d/%m/%Y")
+today_str = date.today().strftime("%m/%d/%Y")
 mask = (df['Last Watered Date'] != today_str) & (df.get('Snooze Date') != today_str)
 
 # Filtered view for the loop
