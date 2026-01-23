@@ -52,17 +52,18 @@ if not df.empty:
     # 4. LOOP
     if not needs_action_df.empty:
         for index, row in needs_action_df.iterrows():
-            cols = st.columns([2, 1, 1])
+           # cols = st.columns([2, 1, 1])
+            cols = st.columns([5, 1, 1], gap="small")
             with cols[0]:
                 st.write(f"🪴 **{row['Plant Name']}**")
             with cols[1]:
-                if st.button("Watered", key=f"w_{index}"):
+                if st.button("💧", key=f"w_{index}"):
                     df.at[index, 'Last Watered Date'] = today_str
                     conn.update(data=df)
                     st.cache_data.clear()
                     st.rerun()
             with cols[2]:
-                if st.button("Snooze", key=f"s_{index}"):
+                if st.button("😴", key=f"s_{index}"):
                     df.at[index, 'Snooze Date'] = today_str
                     conn.update(data=df)
                     st.cache_data.clear()
