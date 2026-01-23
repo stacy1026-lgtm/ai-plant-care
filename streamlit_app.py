@@ -51,23 +51,30 @@ def get_ai_decision(data_str):
     except:
         return "None"
 
+# ... (Keep your AI setup and data loading code above)
+
 if not df.empty:
     st.subheader("🤖 Needs Water Today")
     
-    # Generate decision based on current data
     plants_summary = df[['Plant Name', 'Last Watered Date']].to_string(index=False)
     decision = get_ai_decision(plants_summary)
+
+    # DEBUG: See what the AI actually said (Remove this line once it works)
+    st.write(f"DEBUG: AI says these need water: `{decision}`")
 
     if "None" in decision or not decision:
         st.success("All plants are hydrated! ✨")
     else:
-        needs_water_names = [n.strip() for n in decision.split(',')]
+        # 1. Clean the list from the AI (lowercase and strip spaces)
+        needs_water_list = [n.strip().lower() for n in decision.split(',')]
         today_str = date.today().strftime("%d/%m/%Y")
 
+        found_any = False
         for index, row in df.iterrows():
-            if row['Plant Name'] in needs_water_names:
+            # 2. Match using lowercase to avoid "Aloe" vs "aloe" errors
+            if row['Plant Name'].strip().lower() in needs_water_list:
+                found_any = True
                 with st.container(border=True):
-                    # One-line mobile layout
                     cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                     with cols[0]:
                         st.markdown(f"**{row['Plant Name']}**")
@@ -80,6 +87,9 @@ if not df.empty:
                     with cols[2]:
                         if st.button("😴", key=f"s_{index}"):
                             st.toast(f"Snoozed {row['Plant Name']}")
+        
+        if not found_any:
+            st.warning("AI suggested plants, but I couldn't find those names in your list. Check for typos!")
 
 # 4. Add New Plant (Inside Expander)
 st.divider()
