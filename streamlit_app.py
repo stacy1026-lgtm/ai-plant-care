@@ -4,34 +4,35 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date
 import pandas as pd
 
-# 1. Setup AI
-try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
-except Exception as e:
-    st.error(f"Secret Error: {e}")
+# 1. Initialize with a default value to prevent NameError
+active_model_name = "Connecting..."
+model = None
 
 @st.cache_resource
 def get_best_model():
     # Modern 2026 model aliases
     test_models = [
-        'gemini-2.0-flash',        # Current standard
-        'gemini-1.5-flash-latest', # Best stable fallback
-        'gemini-pro'               # Legacy fallback
+        'gemini-2.0-flash', 
+        'gemini-1.5-flash-latest', 
+        'gemini-pro'
     ]
     
     for m_name in test_models:
         try:
-            model = genai.GenerativeModel(m_name)
-            # Verify the model actually responds
-            model.generate_content("ping") 
-            return model, m_name
-        except Exception as e:
-            # Logs the specific reason for failure in the sidebar for you
-            st.sidebar.warning(f"Skipping {m_name}: {e}")
+            m = genai.GenerativeModel(m_name)
+            m.generate_content("test") 
+            return m, m_name
+        except Exception:
             continue
             
-    return None, "All models failed"
+    # Return a safe fallback so the variable is always defined
+    return None, "Connection Failed"
+
+# 2. Assign the results
+model, active_model_name = get_best_model()
+
+# Now line 48 will never fail
+st.caption(f"AI Model: {active_model_name}")
 
 # 2. Connection & Data Loading (MUST come before the title)
 conn = st.connection("gsheets", type=GSheetsConnection)
