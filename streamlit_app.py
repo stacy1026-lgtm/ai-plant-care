@@ -55,7 +55,7 @@ if not needs_action_df.empty:
         # Using st.container with border=True for a card look
         with st.container(border=True):
             # Higher ratio (12:1:1) forces buttons closer together
-            cols = st.columns([1, .6,.6], gap="small")
+            cols = st.columns([2, .6,.6], gap="small")
             
             with cols[0]:
                 st.write(f"🪴 **{row['Plant Name']}**")
