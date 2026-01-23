@@ -24,6 +24,7 @@ with st.expander("➕ Add a New Plant"):
         new_name = st.text_input("Plant Name")
         new_acq = st.date_input("Acquisition Date", format="MM/DD/YYYY")
         new_water = st.date_input("Last Watered Date", format="MM/DD/YYYY")
+        new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
@@ -31,6 +32,7 @@ with st.expander("➕ Add a New Plant"):
                     "Plant Name": new_name, 
                     "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
                     "Last Watered Date": new_water.strftime("%m/%d/%Y")
+                    "Frequency": new_freq
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=df)
@@ -49,12 +51,17 @@ today_str = date.today().strftime("%m/%d/%Y")
 df = conn.read(ttl=0)
 
 if not df.empty:
-    # 2. SANITIZE (Prevents format mismatches)
-    df['Last Watered Date'] = df['Last Watered Date'].astype(str).str.strip()
-    df['Snooze Date'] = df.get('Snooze Date', pd.Series([""] * len(df))).astype(str).str.strip()
-
-    # 3. FILTER
-    mask = (df['Last Watered Date'] != today_str) & (df['Snooze Date'] != today_str)
+    # Convert dates to datetime objects for math
+    df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], format="%m/%d/%Y")
+    
+    # Calculate days since last watered
+    days_since = (pd.Timestamp(date.today()) - df['Last Watered Date']).dt.days
+    
+    # Plant needs water if days_since >= Frequency
+    # (Default to 7 if Frequency column is missing)
+    freq = df.get('Frequency', pd.Series([7] * len(df)))
+    
+    mask = (days_since >= freq) & (df['Snooze Date'] != today_str)
     needs_action_df = df[mask]
 
     # 4. LOOP
