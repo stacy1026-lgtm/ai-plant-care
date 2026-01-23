@@ -53,25 +53,26 @@ if not df.empty:
 if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
         # Using st.container with border=True for a card look
-        with st.container(border=True):
-            # Higher ratio (12:1:1) forces buttons closer together
-            cols = st.columns([2, 1, 1], gap="small")
+with st.container(border=True):
+    # 'gap="extra-small"' and small ratios keep them on one line on mobile
+    cols = st.columns([2, 0.6, 0.6], gap="extra-small", vertical_alignment="center")
+    
+    with cols[0]:
+        # Use a small font size for the name if it's too long
+        st.markdown(f"🪴 **{row['Plant Name']}**")
+    
+    with cols[1]:
+        if st.button("💧", key=f"w_{index}"):
+            df.at[index, 'Last Watered Date'] = today_str
+            conn.update(data=df)
+            st.cache_data.clear()
+            st.rerun()
             
-            with cols[0]:
-                st.write(f"🪴 **{row['Plant Name']}**")
-            
-            with cols[1]:
-                if st.button("💧", key=f"w_{index}", help="Mark as Watered"):
-                    df.at[index, 'Last Watered Date'] = today_str
-                    conn.update(data=df)
-                    st.cache_data.clear()
-                    st.rerun()
-                    
-            with cols[2]:
-                if st.button("😴", key=f"s_{index}", help="Snooze for Today"):
-                    df.at[index, 'Snooze Date'] = today_str
-                    conn.update(data=df)
-                    st.cache_data.clear()
-                    st.rerun()
+    with cols[2]:
+        if st.button("😴", key=f"s_{index}"):
+            df.at[index, 'Snooze Date'] = today_str
+            conn.update(data=df)
+            st.cache_data.clear()
+            st.rerun()
 else:
     st.success("All plants are watered or snoozed! ✨")
