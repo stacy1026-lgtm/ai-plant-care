@@ -11,7 +11,7 @@ df = conn.read(ttl=0)
 total_plants = len(df) if not df.empty else 0
 
 # 2. Updated Title
-st.title(f"🪴 Plant Care Tracker ({total_plants})")
+st.title(f"🪴 My ({total_plants}) Plant Garden")
 
 # 1. Connection to Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
