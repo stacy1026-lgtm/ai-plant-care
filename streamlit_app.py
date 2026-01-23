@@ -53,20 +53,44 @@ if not needs_action_df.empty:
         with cols[0]:
             st.write(f"🪴 **{row['Plant Name']}**")
         
-# --- WATERED BUTTON ---
-with cols[1]:
-    if st.button("Watered", key=f"w_{index}"):
-        df.at[index, 'Last Watered Date'] = today_str
-        conn.update(data=df)
-        st.cache_data.clear()  # <--- THIS IS CRITICAL
-        st.rerun()
+st.subheader("Action Required")
 
-# --- SNOOZE BUTTON ---
-with cols[2]:
-    if st.button("Snooze", key=f"s_{index}"):
-        df.at[index, 'Snooze Date'] = today_str
-        conn.update(data=df)
-        st.cache_data.clear()  # <--- THIS IS CRITICAL
-        st.rerun()
+today_str = date.today().strftime("%d/%m/%Y")
+
+# 1. READ (ttl=0 ensures we don't see old data)
+df = conn.read(ttl=0)
+
+if not df.empty:
+    # 2. SANITIZE (Prevents format mismatches)
+    df['Last Watered Date'] = df['Last Watered Date'].astype(str).str.strip()
+    df['Snooze Date'] = df.get('Snooze Date', pd.Series([""] * len(df))).astype(str).str.strip()
+
+    # 3. FILTER
+    mask = (df['Last Watered Date'] != today_str) & (df['Snooze Date'] != today_str)
+    needs_action_df = df[mask]
+
+    # 4. LOOP
+    if not needs_action_df.empty:
+        for index, row in needs_action_df.iterrows():
+            cols = st.columns([2, 1, 1])
+            with cols[0]:
+                st.write(f"🪴 **{row['Plant Name']}**")
+            with cols[1]:
+                if st.button("Watered", key=f"w_{index}"):
+                    df.at[index, 'Last Watered Date'] = today_str
+                    conn.update(data=df)
+                    st.cache_data.clear()
+                    st.rerun()
+            with cols[2]:
+                if st.button("Snooze", key=f"s_{index}"):
+                    df.at[index, 'Snooze Date'] = today_str
+                    conn.update(data=df)
+                    st.cache_data.clear()
+                    st.rerun()
     else:
         st.success("All plants are watered or snoozed! ✨")
+        
+    # --- DEBUG SECTION (Check if data matches today_str) ---
+    with st.expander("🔍 Debug Data"):
+        st.write(f"Today's Date: `{today_str}`")
+        st.dataframe(df[['Plant Name', 'Last Watered Date', 'Snooze Date']])
