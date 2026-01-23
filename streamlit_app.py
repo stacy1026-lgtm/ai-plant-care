@@ -74,5 +74,4 @@ if not needs_action_df.empty:
             conn.update(data=df)
             st.cache_data.clear()
             st.rerun()
-else:
-    st.success("All plants are watered or snoozed! ✨")
+            success("All plants are watered or snoozed! ✨")
