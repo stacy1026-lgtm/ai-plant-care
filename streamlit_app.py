@@ -58,6 +58,25 @@ if not df.empty:
     needs_action_df = df[mask]
 
     # 4. LOOP
+# 1. Determine if 24 hours have passed
+# Ensure you have a 'Last AI Update' cell or a way to track time. 
+# For simplicity, we'll use Streamlit's cache with a 24h TTL.
+
+@st.cache_data(ttl=86400) # 86400 seconds = 24 hours
+def get_ai_advice(plant_list):
+    prompt = f"Given these plants: {plant_list}, give a 1-sentence tip on watering them today."
+    # Replace this with your actual AI call logic
+    response = st.write("Generating fresh AI advice...") 
+    return "Keep the soil moist but not soggy for your tropicals today!"
+
+# 2. Display Advice
+if not needs_action_df.empty:
+    plant_names = ", ".join(needs_action_df['Plant Name'].tolist())
+    advice = get_ai_advice(plant_names)
+    
+    with st.chat_message("assistant"):
+        st.write(advice)
+        
 if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
         with st.container(border=True):
