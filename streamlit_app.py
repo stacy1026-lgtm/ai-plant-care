@@ -22,8 +22,15 @@ def get_best_model():
 model, active_model_name = get_best_model()
 
 st.set_page_config(page_title="AI Plant Parent", page_icon="🌱")
-st.title("🌱 AI Plant Parent")
-st.caption(f"Connected via: {active_model_name}")
+st.title(f"🌱 AI Plant Parent ({len(df)})")
+
+# Refresh button at the top
+if st.button("🔄 Refresh AI Advice"):
+    st.cache_data.clear()
+    st.rerun()
+
+# This displays the last time the AI actually ran
+st.caption(f"AI Model: {active_model_name}")
 
 # 2. Connection
 conn = st.connection("gsheets", type=GSheetsConnection)
