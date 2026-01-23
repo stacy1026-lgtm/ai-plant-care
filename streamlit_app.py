@@ -13,7 +13,7 @@ def get_best_model():
     # Recommended models for 2026
     preferred_models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
     for m_name in preferred_models:
-    for m_name in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']:
+        for m_name in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']:
 try:
 model = genai.GenerativeModel(m_name)
             model.generate_content("test") # quick check
