@@ -3,8 +3,15 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date
 import pandas as pd
 
-st.set_page_config(page_title="Plant Tracker", page_icon="🌱")
-st.title("🌱 My Plant Garden")
+# 1. Establish connection and read data
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(ttl=0)
+
+# Calculate total count
+total_plants = len(df) if not df.empty else 0
+
+# 2. Updated Title
+st.title(f"🪴 Plant Care Tracker ({total_plants})")
 
 # 1. Connection to Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
