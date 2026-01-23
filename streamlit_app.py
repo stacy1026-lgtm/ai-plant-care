@@ -8,7 +8,7 @@ import google.generativeai as genai
 st.set_page_config(page_title="Plant Care", layout="centered")
 
 # Configure Gemini API (Add 'GOOGLE_API_KEY' to your secrets)
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+genai.configure(api_key=st.secrets["AIzaSyAoC6nVHtpYPDdpTBn0uBZIzn00cMqNnq0"])
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 st.title("🪴 Plant Care Tracker")
