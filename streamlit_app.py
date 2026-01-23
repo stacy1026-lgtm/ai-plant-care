@@ -57,7 +57,7 @@ if not df.empty:
     needs_action_df = df[df.apply(needs_water, axis=1)]
     count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
     
-    with st.expander(f"🚿 Plants to Water {count_label}", expanded=not needs_action_df.empty):
+    with st.expander(f"🚿 Plants to Water {count_label}", expanded=False):
         if not needs_action_df.empty:
             for index, row in needs_action_df.iterrows():
                 with st.container(border=True):
