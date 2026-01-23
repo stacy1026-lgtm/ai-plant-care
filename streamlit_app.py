@@ -20,7 +20,9 @@ def get_best_model():
     return None, "None"
 
 model, active_model_name = get_best_model()
-
+# 2. Connection & Data Loading (MUST come before the title)
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(ttl="5m")
 st.set_page_config(page_title="AI Plant Parent", page_icon="🌱")
 st.title(f"🌱 AI Plant Parent ({len(df)})")
 
