@@ -32,26 +32,6 @@ with st.expander("➕ Add a New Plant"):
                 st.error("Please enter a name.")
 
 st.divider()
-
-st.subheader("🚿 Needs Watered")
-
-today_str = date.today().strftime("%m/%d/%Y")
-
-# 1. READ full data
-df = conn.read(ttl=0) 
-
-# 2. FILTER for display
-today_str = date.today().strftime("%m/%d/%Y")
-mask = (df['Last Watered Date'] != today_str) & (df.get('Snooze Date') != today_str)
-needs_action_df = df[mask]
-
-# 3. DISPLAY LOOP
-if not needs_action_df.empty:
-    for index, row in needs_action_df.iterrows():
-        cols = st.columns([2, 1, 1])
-        
-        with cols[0]:
-            st.write(f"🪴 **{row['Plant Name']}**")
         
 st.subheader("Action Required")
 
