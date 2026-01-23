@@ -35,7 +35,7 @@ st.divider()
 
 st.subheader("🚿 Action Required")
 
-today_str = date.today().strftime("%d/%m/%Y")
+today_str = date.today().strftime("%m/%d/%Y")
 
 if not df.empty:
     # 1. THE FILTER: Only keep rows where:
