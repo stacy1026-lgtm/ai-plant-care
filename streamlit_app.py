@@ -31,7 +31,7 @@ if not df.empty:
             # Container for the 'card' look
             with st.container(border=True):
                 # Tight ratios and extra-small gap for mobile one-line display
-                cols = st.columns([2, 0.6, 0.6], gap="extra-small", vertical_alignment="center")
+                cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                 
                 with cols[0]:
                     st.markdown(f"**{row['Plant Name']}**")
