@@ -37,27 +37,36 @@ st.subheader("🚿 Action Required")
 
 today_str = date.today().strftime("%m/%d/%Y")
 
-# 1. READ the full data
+# 1. READ full data
 df = conn.read(ttl=0) 
 
-# 2. FILTER for display, but KEEP the original index
+# 2. FILTER for display
 today_str = date.today().strftime("%m/%d/%Y")
 mask = (df['Last Watered Date'] != today_str) & (df.get('Snooze Date') != today_str)
-
-# Filtered view for the loop
 needs_action_df = df[mask]
 
+# 3. DISPLAY LOOP
 if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
-        # 'index' here is the ORIGINAL row number from the Google Sheet
         cols = st.columns([2, 1, 1])
+        
         with cols[0]:
             st.write(f"🪴 **{row['Plant Name']}**")
+        
         with cols[1]:
-            # Using the original index for the button key and the update
+            # WATERED BUTTON
             if st.button("Watered", key=f"w_{index}"):
-                # Update the ORIGINAL dataframe at the CORRECT row
                 df.at[index, 'Last Watered Date'] = today_str
                 conn.update(data=df)
                 st.cache_data.clear()
                 st.rerun()
+                
+        with cols[2]:
+            # SNOOZE BUTTON (Ensuring it's back!)
+            if st.button("Snooze", key=f"s_{index}"):
+                df.at[index, 'Snooze Date'] = today_str
+                conn.update(data=df)
+                st.cache_data.clear()
+                st.rerun()
+else:
+    st.success("All plants are watered or snoozed! ✨")
