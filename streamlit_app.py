@@ -1,9 +1,10 @@
-import streamlit as st
 import google.generativeai as genai
 from streamlit_gsheets import GSheetsConnection
 from datetime import date
+import pandas as pd
 
 # 1. Setup AI
+# 1. Setup AI (Automatic Discovery)
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # AUTOMATIC MODEL DISCOVERY: This finds which model your key actually supports
@@ -12,13 +13,17 @@ def get_best_model():
     # Recommended models for 2026
     preferred_models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']
     for m_name in preferred_models:
-        try:
-            model = genai.GenerativeModel(m_name)
+    for m_name in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']:
+try:
+model = genai.GenerativeModel(m_name)
             model.generate_content("test") # quick check
-            return model, m_name
+            model.generate_content("test")
+return model, m_name
         except:
             continue
     return genai.GenerativeModel('gemini-pro'), "gemini-pro"
+        except: continue
+    return None, None
 
 model, active_model_name = get_best_model()
 
@@ -27,6 +32,7 @@ st.title("🌱 AI Plant Parent")
 st.caption(f"Connected via: {active_model_name}")
 
 # 2. Connect to Google Sheets
+# 2. Connection
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read()
 
@@ -48,17 +54,97 @@ if user_query:
             st.success(response.text)
         except Exception as e:
             st.error(f"AI Error: {e}")
+# --- NEW PLANT FORM ---
+st.divider()
+st.subheader("➕ Add a New Plant")
+
+with st.form("new_plant_form", clear_on_submit=True):
+    new_name = st.text_input("Plant Name")
+    
+    # Add format="DD/MM/YYYY" to both date inputs
+    new_acq_date = st.date_input("Acquisition Date", value=date.today(), format="MM/DD/YYYY")
+    new_water_date = st.date_input("Last Watered Date", value=date.today(), format="MM/DD/YYYY")
+    
+    submit_new_plant = st.form_submit_button("Add to Collection")
+
+if submit_new_plant:
+    if new_name:
+        # 1. Create a single-row DataFrame for the new plant
+        import pandas as pd
+        new_row = pd.DataFrame([{
+            "Plant Name": new_name,
+            "Acquisition Date": str(new_acq_date),
+            "Last Watered Date": str(new_water_date)
+        }])
+        
+        # 2. Combine with existing data
+        updated_df = pd.concat([df, new_row], ignore_index=True)
+        
+        # 3. Push back to Google Sheets
+        conn.update(data=updated_df)
+        
+        st.success(f"Added {new_name} to your garden! 🌱")
+        st.rerun()
+    else:
+        st.warning("Please enter a plant name.")            
+with st.expander("➕ Add a New Plant"):
+    with st.form("new_plant_form", clear_on_submit=True):
+        new_name = st.text_input("Plant Name")
+        new_acq = st.date_input("Acquisition Date", format="DD/MM/YYYY")
+        new_water = st.date_input("Last Watered Date", format="DD/MM/YYYY")
+        if st.form_submit_button("Add to Collection"):
+            new_row = pd.DataFrame([{"Plant Name": new_name, "Acquisition Date": new_acq.strftime("%d/%m/%Y"), "Last Watered Date": new_water.strftime("%d/%m/%Y")}])
+            df = pd.concat([df, new_row], ignore_index=True)
+            conn.update(data=df)
+            st.rerun()
 
 st.divider()
 
 # 3. Individual Plant View
-st.subheader("Your Plant Collection")
-for index, row in df.iterrows():
-    with st.expander(f"🪴 {row['Plant Name']}"):
-        st.write(f"**Acquired:** {row['Acquisition Date']}")
-        st.write(f"**Last Watered:** {row['Last Watered Date']}")
+st.subheader("🤖 AI Watering Decisions")
+
+# --- AI FILTERING LOGIC ---
+st.subheader("🤖 Needs Water Today (AI Choice)")
+if not df.empty:
+    # 1. Prepare data for the AI
+    plants_list = df[['Plant Name', 'Last Watered Date']].to_string(index=False)
+    plants_summary = df[['Plant Name', 'Last Watered Date']].to_string(index=False)
+    ai_prompt = f"Today is {date.today()}. Plants:\n{plants_summary}\nIdentify which need water today based on species needs. Return ONLY names separated by commas or 'None'."
+
+    # 2. Craft the prompt
+    ai_prompt = (
+        f"Today is {date.today()}. Based on these plants and their last watering dates:\n"
+        f"{plants_list}\n\n"
+        "Identify which specific plants likely need water today. "
+        "Consider typical houseplant needs (e.g., succulents need weeks, ferns need days). "
+        "Return ONLY the names of plants that need water, separated by commas. "
+        "If none, say 'None'."
+    )
+
+    # 3. Get AI Decision
+    with st.spinner("AI is analyzing your garden..."):
+        response = model.generate_content(ai_prompt)
+        decision = response.text.strip()
+    response = model.generate_content(ai_prompt)
+    decision = response.text.strip()
+
+    # 4. Filter and Display
+if "None" in decision:
+        st.success("The AI thinks everyone is hydrated! ✨")
+        st.success("All plants are hydrated! ✨")
+else:
+        # Convert AI string into a list of names
+        needs_water_names = [name.strip() for name in decision.split(',')]
         
-        if st.button(f"Analyze {row['Plant Name']}", key=f"btn_{index}"):
-            with st.spinner("Checking..."):
-                res = model.generate_content(f"I have a {row['Plant Name']} last watered {row['Last Watered Date']}. Advice?")
-                st.info(res.text)
+        # Display only those plants
+        for name in needs_water_names:
+            plant_row = df[df['Plant Name'] == name]
+            if not plant_row.empty:
+                with st.expander(f"💧 {name} "):
+                    st.write(f"Last Watered: {plant_row.iloc[0]['Last Watered Date']}")
+                    # st.info(f"The AI suggests watering {name} based on its typical species requirements.")
+        # Display Loop
+        needs_water_names = [n.strip() for n in decision.split(',')]
+        for index, row in df.iterrows():
+            if row['Plant Name'] in needs_water_names:
+                cols = st.columns([3, 1])
