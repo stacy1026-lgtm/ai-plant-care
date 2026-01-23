@@ -53,9 +53,11 @@ st.divider()
 st.subheader("➕ Add a New Plant")
 
 with st.form("new_plant_form", clear_on_submit=True):
-    new_name = st.text_input("Plant Name (e.g., Fiddle Leaf Fig)")
-    new_acq_date = st.date_input("Acquisition Date", value=date.today())
-    new_water_date = st.date_input("Last Watered Date", value=date.today())
+    new_name = st.text_input("Plant Name")
+    
+    # Add format="DD/MM/YYYY" to both date inputs
+    new_acq_date = st.date_input("Acquisition Date", value=date.today(), format="DD/MM/YYYY")
+    new_water_date = st.date_input("Last Watered Date", value=date.today(), format="DD/MM/YYYY")
     
     submit_new_plant = st.form_submit_button("Add to Collection")
 
