@@ -53,7 +53,7 @@ if not df.empty:
     if not needs_action_df.empty:
         for index, row in needs_action_df.iterrows():
            # cols = st.columns([2, 1, 1])
-            cols = st.columns([10, 1, 1], gap="small")
+            cols = st.columns([1, 1, 1], gap="small")
             with cols[0]:
                 st.write(f"🪴 **{row['Plant Name']}**")
             with cols[1]:
