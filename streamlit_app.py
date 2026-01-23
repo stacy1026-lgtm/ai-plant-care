@@ -68,5 +68,5 @@ with cols[2]:
         conn.update(data=df)
         st.cache_data.clear()  # <--- THIS IS CRITICAL
         st.rerun()
-else:
+    else:
     st.success("All plants are watered or snoozed! ✨")
