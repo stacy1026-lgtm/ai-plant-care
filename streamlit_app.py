@@ -4,7 +4,7 @@ from datetime import date
 import pandas as pd
 
 st.set_page_config(page_title="Plant Tracker", page_icon="🌱")
-st.title("🌱 My Plantg Garden")
+st.title("🌱 My Plant Garden")
 
 # 1. Connection to Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
