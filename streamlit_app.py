@@ -60,4 +60,4 @@ if not df.empty:
                 if st.button("Snooze", key=f"s_{index}"):
                     df.at[index, 'Snooze Date'] = today_str
                     conn.update(data=df)
-                    st.rerun()rerun()
+                    st.rerun()
