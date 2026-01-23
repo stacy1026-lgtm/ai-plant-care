@@ -14,15 +14,15 @@ df = conn.read()
 with st.expander("➕ Add a New Plant"):
     with st.form("new_plant_form", clear_on_submit=True):
         new_name = st.text_input("Plant Name")
-        new_acq = st.date_input("Acquisition Date", format="DD/MM/YYYY")
-        new_water = st.date_input("Last Watered Date", format="DD/MM/YYYY")
+        new_acq = st.date_input("Acquisition Date", format="MM/DD/YYYY")
+        new_water = st.date_input("Last Watered Date", format="MM/DD/YYYY")
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
                 new_row = pd.DataFrame([{
                     "Plant Name": new_name, 
-                    "Acquisition Date": new_acq.strftime("%d/%m/%Y"), 
-                    "Last Watered Date": new_water.strftime("%d/%m/%Y")
+                    "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
+                    "Last Watered Date": new_water.strftime("%m/%d/%Y")
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=df)
