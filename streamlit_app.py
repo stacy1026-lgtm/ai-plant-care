@@ -33,7 +33,7 @@ with st.expander("➕ Add a New Plant"):
 
 st.divider()
 
-st.subheader("🚿 Action Required")
+st.subheader("🚿 Needs Watered")
 
 today_str = date.today().strftime("%m/%d/%Y")
 
@@ -53,20 +53,20 @@ if not needs_action_df.empty:
         with cols[0]:
             st.write(f"🪴 **{row['Plant Name']}**")
         
-        with cols[1]:
-            # WATERED BUTTON
-            if st.button("Watered", key=f"w_{index}"):
-                df.at[index, 'Last Watered Date'] = today_str
-                conn.update(data=df)
-                st.cache_data.clear()
-                st.rerun()
-                
-        with cols[2]:
-            # SNOOZE BUTTON (Ensuring it's back!)
-            if st.button("Snooze", key=f"s_{index}"):
-                df.at[index, 'Snooze Date'] = today_str
-                conn.update(data=df)
-                st.cache_data.clear()
-                st.rerun()
+# --- WATERED BUTTON ---
+with cols[1]:
+    if st.button("Watered", key=f"w_{index}"):
+        df.at[index, 'Last Watered Date'] = today_str
+        conn.update(data=df)
+        st.cache_data.clear()  # <--- THIS IS CRITICAL
+        st.rerun()
+
+# --- SNOOZE BUTTON ---
+with cols[2]:
+    if st.button("Snooze", key=f"s_{index}"):
+        df.at[index, 'Snooze Date'] = today_str
+        conn.update(data=df)
+        st.cache_data.clear()  # <--- THIS IS CRITICAL
+        st.rerun()
 else:
     st.success("All plants are watered or snoozed! ✨")
