@@ -53,21 +53,20 @@ if not df.empty:
 if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
         with st.container(border=True):
-            # 1. Plant Name on top
-            st.markdown(f"🪴 **{row['Plant Name']}**")
+            # Back to one row: [Name, Button 1, Button 2]
+            cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
             
-            # 2. Buttons grouped below
-            # Small ratios [1, 1, 4] keep buttons left-aligned under the name
-            btn_cols = st.columns([1, 1, 4], gap="small")
+            with cols[0]:
+                st.markdown(f"🪴 **{row['Plant Name']}**")
             
-            with btn_cols[0]:
+            with cols[1]:
                 if st.button("💧", key=f"w_{index}"):
                     df.at[index, 'Last Watered Date'] = today_str
                     conn.update(data=df)
                     st.cache_data.clear()
                     st.rerun()
                     
-            with btn_cols[1]:
+            with cols[2]:
                 if st.button("😴", key=f"s_{index}"):
                     df.at[index, 'Snooze Date'] = today_str
                     conn.update(data=df)
