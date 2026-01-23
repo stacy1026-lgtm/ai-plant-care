@@ -5,30 +5,27 @@ from datetime import date
 import pandas as pd
 
 # 1. Setup AI
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=api_key)
+except Exception as e:
+    st.error(f"Secret Error: {e}")
 
 @st.cache_resource
 def get_best_model():
-    # Try these in order of availability for 2026
-    test_models = [
-        'models/gemini-1.5-flash-latest', 
-        'models/gemini-1.5-flash', 
-        'gemini-1.5-flash',
-        'models/gemini-pro'
-    ]
-    
-    for m_name in test_models:
-        try:
-            model = genai.GenerativeModel(m_name)
-            # We must test with a real call to verify the key has access
-            model.generate_content("ping") 
-            return model, m_name
-        except Exception:
-            continue
-            
-    return None, "Connection Failed"
+    # Attempt the most stable model directly
+    m_name = 'models/gemini-1.5-flash'
+    try:
+        model = genai.GenerativeModel(m_name)
+        model.generate_content("test") # Verification call
+        return model, m_name
+    except Exception as e:
+        # This will show you the EXACT error from Google (e.g., Invalid API Key)
+        st.sidebar.error(f"Connection Error: {e}")
+        return None, "Connection Failed"
 
 model, active_model_name = get_best_model()
+
 # 2. Connection & Data Loading (MUST come before the title)
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl="5m")
