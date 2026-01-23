@@ -33,28 +33,31 @@ with st.expander("➕ Add a New Plant"):
 
 st.divider()
 
-# 3. Display Plants Needing Water Today
 st.subheader("🚿 Plants to Water")
 
 today_str = date.today().strftime("%d/%m/%Y")
 
-# Filter: Only show plants that were NOT watered today
 if not df.empty:
-    needs_water_df = df[df['Last Watered Date'] != today_str]
+    # Filter out plants watered today OR snoozed today
+    # (Checking if 'Snooze Date' matches today)
+    mask = (df['Last Watered Date'] != today_str) & (df.get('Snooze Date') != today_str)
+    needs_water_df = df[mask]
 
     if needs_water_df.empty:
-        st.success("All plants are watered for today! ✨")
+        st.success("All plants are watered or snoozed! ✨")
     else:
         for index, row in needs_water_df.iterrows():
-            cols = st.columns([3, 1])
+            cols = st.columns([2, 1, 1]) # Three columns now
             with cols[0]:
-                st.write(f"🪴 **{row['Plant Name']}** (Last: {row['Last Watered Date']})")
+                st.write(f"🪴 **{row['Plant Name']}**")
             with cols[1]:
-                # Unique key prevents button conflicts
                 if st.button("Watered", key=f"water_{index}"):
                     df.at[index, 'Last Watered Date'] = today_str
                     conn.update(data=df)
-                    st.toast(f"Updated {row['Plant Name']}!")
                     st.rerun()
-else:
-    st.info("Your garden is empty. Add a plant above!")
+            with cols[2]:
+                if st.button("Snooze", key=f"snooze_{index}"):
+                    df.at[index, 'Snooze Date'] = today_str
+                    conn.update(data=df)
+                    st.toast(f"Snoozed {row['Plant Name']} until tomorrow.")
+                    st.rerun()
