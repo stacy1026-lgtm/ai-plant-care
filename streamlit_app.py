@@ -4,29 +4,47 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date
 import pandas as pd
 
-# 1. Initialize with a default value to prevent NameError
-active_model_name = "Connecting..."
-model = None
+import streamlit as st
+import google.generativeai as genai
+from datetime import date
+
+# 1. Setup AI with Error Logging
+try:
+    # Ensure this matches exactly in Streamlit Secrets
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+except Exception as e:
+    st.error(f"Secret Key Missing: {e}")
 
 @st.cache_resource
 def get_best_model():
-    # Modern 2026 model aliases
+    # 2026 Compatible Model List
     test_models = [
-        'gemini-2.0-flash', 
-        'gemini-1.5-flash-latest', 
-        'gemini-pro'
+        'gemini-2.0-flash',        # Try the newest first
+        'gemini-1.5-flash-latest', # Try the stable latest
+        'gemini-pro'               # Legacy fallback
     ]
     
     for m_name in test_models:
         try:
             m = genai.GenerativeModel(m_name)
-            m.generate_content("test") 
+            # A tiny test call to verify connection
+            m.generate_content("test", generation_config={"max_output_tokens": 1})
             return m, m_name
-        except Exception:
+        except Exception as e:
+            # We skip and try the next model
             continue
             
-    # Return a safe fallback so the variable is always defined
-    return None, "Connection Failed"
+    return None, "All Models Failed"
+
+# Define variables clearly to avoid NameError
+model, active_model_name = get_best_model()
+
+# 2. Main App
+st.title("🌱 AI Plant Parent")
+st.caption(f"Status: {active_model_name}")
+
+if active_model_name == "All Models Failed":
+    st.error("Google AI is not responding. Please check your API Key in Google AI Studio.")
 
 # 2. Assign the results
 model, active_model_name = get_best_model()
