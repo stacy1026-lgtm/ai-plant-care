@@ -48,6 +48,37 @@ if user_query:
             st.success(response.text)
         except Exception as e:
             st.error(f"AI Error: {e}")
+# --- NEW PLANT FORM ---
+st.divider()
+st.subheader("➕ Add a New Plant")
+
+with st.form("new_plant_form", clear_on_submit=True):
+    new_name = st.text_input("Plant Name (e.g., Fiddle Leaf Fig)")
+    new_acq_date = st.date_input("Acquisition Date", value=date.today())
+    new_water_date = st.date_input("Last Watered Date", value=date.today())
+    
+    submit_new_plant = st.form_submit_button("Add to Collection")
+
+if submit_new_plant:
+    if new_name:
+        # 1. Create a single-row DataFrame for the new plant
+        import pandas as pd
+        new_row = pd.DataFrame([{
+            "Plant Name": new_name,
+            "Acquisition Date": str(new_acq_date),
+            "Last Watered Date": str(new_water_date)
+        }])
+        
+        # 2. Combine with existing data
+        updated_df = pd.concat([df, new_row], ignore_index=True)
+        
+        # 3. Push back to Google Sheets
+        conn.update(data=updated_df)
+        
+        st.success(f"Added {new_name} to your garden! 🌱")
+        st.rerun()
+    else:
+        st.warning("Please enter a plant name.")            
 
 st.divider()
 
