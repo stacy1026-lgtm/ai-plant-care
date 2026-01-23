@@ -52,25 +52,27 @@ if not df.empty:
     # 4. LOOP
 if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
-        # Using st.container with border=True for a card look
         with st.container(border=True):
-            # Higher ratio (12:1:1) forces buttons closer together
-            cols = st.columns([2, .6,.6], gap="small")
+            # 1. Plant Name on top
+            st.markdown(f"🪴 **{row['Plant Name']}**")
             
-            with cols[0]:
-                st.write(f"🪴 **{row['Plant Name']}**")
+            # 2. Buttons grouped below
+            # Small ratios [1, 1, 4] keep buttons left-aligned under the name
+            btn_cols = st.columns([1, 1, 4], gap="small")
             
-            with cols[1]:
-                if st.button("💧", key=f"w_{index}", help="Mark as Watered"):
+            with btn_cols[0]:
+                if st.button("💧", key=f"w_{index}"):
                     df.at[index, 'Last Watered Date'] = today_str
                     conn.update(data=df)
                     st.cache_data.clear()
                     st.rerun()
                     
-            with cols[2]:
-                if st.button("😴", key=f"s_{index}", help="Snooze for Today"):
+            with btn_cols[1]:
+                if st.button("😴", key=f"s_{index}"):
                     df.at[index, 'Snooze Date'] = today_str
                     conn.update(data=df)
+                    st.cache_data.clear()
+                    st.rerun()
                     st.cache_data.clear()
                     st.rerun()
 else:
