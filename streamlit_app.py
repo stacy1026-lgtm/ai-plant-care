@@ -53,7 +53,7 @@ if not df.empty:
 if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
         # Using st.container with border=True for a card look
-    with st.container(border=True):
+        with st.container(border=True):
     # 'gap="extra-small"' and small ratios keep them on one line on mobile
     cols = st.columns([2, 0.6, 0.6], gap="extra-small", vertical_alignment="center")
     
