@@ -9,15 +9,24 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 @st.cache_resource
 def get_best_model():
-    # Attempting to find the best available model
-    for m_name in ['gemini-1.5-flash', 'gemini-pro']:
+    # Try these in order of availability for 2026
+    test_models = [
+        'models/gemini-1.5-flash-latest', 
+        'models/gemini-1.5-flash', 
+        'gemini-1.5-flash',
+        'models/gemini-pro'
+    ]
+    
+    for m_name in test_models:
         try:
             model = genai.GenerativeModel(m_name)
-            model.generate_content("test")
+            # We must test with a real call to verify the key has access
+            model.generate_content("ping") 
             return model, m_name
-        except:
+        except Exception:
             continue
-    return None, "None"
+            
+    return None, "Connection Failed"
 
 model, active_model_name = get_best_model()
 # 2. Connection & Data Loading (MUST come before the title)
