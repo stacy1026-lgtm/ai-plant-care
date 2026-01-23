@@ -4,8 +4,6 @@ from datetime import date, datetime, timedelta
 import pandas as pd
 
 # 1. Setup & Data Loading
-if 'water_expanded' not in st.session_state:
-    st.session_state.water_expanded = False
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0)
@@ -59,27 +57,24 @@ if not df.empty:
     needs_action_df = df[df.apply(needs_water, axis=1)]
     count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
     
-with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
-    
-    # Update state whenever a button is clicked
-    if not needs_action_df.empty:
-        for index, row in needs_action_df.iterrows():
-            with st.container(border=True):
-                cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
-                
-                with cols[1]:
-                    if st.button("💧", key=f"w_{index}"):
-                        st.session_state.water_expanded = True  # Keep open
-                        df.at[index, 'Last Watered Date'] = today_str
-                        conn.update(data=df)
-                        st.rerun()
-                        
-                with cols[2]:
-                    if st.button("😴", key=f"s_{index}"):
-                        st.session_state.water_expanded = True  # Keep open
-                        df.at[index, 'Snooze Date'] = today_str
-                        conn.update(data=df)
-                        st.rerun()
+    with st.expander(f"🚿 Plants to Water {count_label}", expanded=False):
+        if not needs_action_df.empty:
+            for index, row in needs_action_df.iterrows():
+                with st.container(border=True):
+                    cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
+                    with cols[0]:
+                        st.markdown(f"**{row['Plant Name']}**")
+                        st.caption(f"Every {row['Frequency']} days")
+                    with cols[1]:
+                        if st.button("💧", key=f"w_{index}"):
+                            df.at[index, 'Last Watered Date'] = today_str
+                            conn.update(data=df)
+                            st.rerun()
+                    with cols[2]:
+                        if st.button("😴", key=f"s_{index}"):
+                            df.at[index, 'Snooze Date'] = today_str
+                            conn.update(data=df)
+                            st.rerun()
         else:
             st.success("All plants are watered! ✨")
 
