@@ -33,9 +33,9 @@ with st.expander("➕ Add a New Plant"):
 
 st.divider()
         
-st.subheader("Action Required")
+st.subheader("🚿 Plants to Water")
 
-today_str = date.today().strftime("%d/%m/%Y")
+today_str = date.today().strftime("%m/%d/%Y")
 
 # 1. READ (ttl=0 ensures we don't see old data)
 df = conn.read(ttl=0)
@@ -69,8 +69,3 @@ if not df.empty:
                     st.rerun()
     else:
         st.success("All plants are watered or snoozed! ✨")
-        
-    # --- DEBUG SECTION (Check if data matches today_str) ---
-    with st.expander("🔍 Debug Data"):
-        st.write(f"Today's Date: `{today_str}`")
-        st.dataframe(df[['Plant Name', 'Last Watered Date', 'Snooze Date']])
