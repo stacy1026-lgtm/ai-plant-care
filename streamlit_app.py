@@ -117,6 +117,6 @@ if not df.empty:
         for name in needs_water_names:
             plant_row = df[df['Plant Name'] == name]
             if not plant_row.empty:
-                with st.expander(f"💧 {name} (AI Recommendation)"):
+                with st.expander(f"💧 {name} "):
                     st.write(f"Last Watered: {plant_row.iloc[0]['Last Watered Date']}")
                     st.info(f"The AI suggests watering {name} based on its typical species requirements.")
