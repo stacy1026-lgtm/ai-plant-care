@@ -31,7 +31,7 @@ with st.expander("➕ Add a New Plant"):
                 new_row = pd.DataFrame([{
                     "Plant Name": new_name, 
                     "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
-                    "Last Watered Date": new_water.strftime("%m/%d/%Y")
+                    "Last Watered Date": new_water.strftime("%m/%d/%Y"),
                     "Frequency": new_freq
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
