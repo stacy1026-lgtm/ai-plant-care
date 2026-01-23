@@ -11,7 +11,8 @@ df = conn.read(ttl=0)
 total_plants = len(df) if not df.empty else 0
 
 # 2. Updated Title
-st.title(f"🪴 My ({total_plants}) Plant Garden")
+st.title(f"🪴 My Plant Garden")
+st.markdown(f"### You have **{total_plants}** total plants in your collection")
 
 # 1. Connection to Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
