@@ -119,4 +119,4 @@ if not df.empty:
             if not plant_row.empty:
                 with st.expander(f"💧 {name} "):
                     st.write(f"Last Watered: {plant_row.iloc[0]['Last Watered Date']}")
-                    st.info(f"The AI suggests watering {name} based on its typical species requirements.")
+                    # st.info(f"The AI suggests watering {name} based on its typical species requirements.")
