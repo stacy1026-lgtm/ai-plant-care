@@ -69,4 +69,4 @@ with cols[2]:
         st.cache_data.clear()  # <--- THIS IS CRITICAL
         st.rerun()
     else:
-    st.success("All plants are watered or snoozed! ✨")
+        st.success("All plants are watered or snoozed! ✨")
