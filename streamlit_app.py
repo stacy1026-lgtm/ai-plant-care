@@ -50,7 +50,7 @@ if not df.empty:
     needs_action_df = df[mask]
 
     # 4. LOOP
-   if not needs_action_df.empty:
+if not needs_action_df.empty:
     for index, row in needs_action_df.iterrows():
         # Using st.container with border=True for a card look
         with st.container(border=True):
