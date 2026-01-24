@@ -80,14 +80,23 @@ if not df.empty:
                         if st.button("💧", key=f"w_{index}"):
                             st.session_state.water_expanded = True
                             
-                            # 1. Update the main collection for current tracking
+                            # 1. Update main table
                             df.at[index, 'Last Watered Date'] = today_str
                             conn.update(data=df)
                             
-                            # 2. Append to History (New Sheet)
-                            history_entry = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
-                            # Assuming your connection can target a second worksheet named 'History'
-                            conn.create(worksheet="History", data=history_entry) 
+                            # 2. Append to History Safely
+                            try:
+                                # Read existing history
+                                history_df = conn.read(worksheet="History", ttl=0)
+                                # Create new row
+                                new_log = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
+                                # Combine and update
+                                updated_history = pd.concat([history_df, new_log], ignore_index=True)
+                                conn.update(worksheet="History", data=updated_history)
+                            except Exception as e:
+                                st.error(f"Could not log history: {e}")
+                            
+                            st.rerun()
                     with cols[2]:
                         if st.button("😴", key=f"s_{index}"):
                             st.session_state.water_expanded = True
