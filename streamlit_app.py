@@ -81,10 +81,12 @@ if not df.empty:
                     with cols[2]:
                         if st.button("😴", key=f"s_{index}"):
                             st.session_state.water_expanded = True
-                            df.at[index, 'Snooze Date'] = today_str
+                            # Set the date it should REAPPEAR (2 days from now)
+                            reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                            df.at[index, 'Snooze Date'] = reappear_date
                             conn.update(data=df)
                             st.rerun()
-        else:
+                        else:
             st.success("All plants are watered! ✨")
 
     # 5. Full Collection
