@@ -1,11 +1,11 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 
-# 1. Initialize Session State (at the very top)
+# 1. Initialize Session State
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
 
@@ -13,7 +13,7 @@ st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0)
 
-# Ensure columns exist and handle missing values
+# Ensure columns exist
 for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name']:
     if col not in df.columns:
         df[col] = ""
@@ -53,27 +53,22 @@ if not df.empty:
     df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
     
-    # Calculate Thirsty Plants
-def needs_water(row):
-    if pd.isna(row['Last Watered Date']): return True
-    
-    # Calculate days since last watering
-    days_since = (today - row['Last Watered Date']).days
-    
-    # Check Snooze Status
-    snooze_val = str(row.get('Snooze Date', ""))
-    is_snoozed = False
-    if snooze_val:
-        try:
-            # If Today is earlier than the Reappear Date, it's still snoozed
-            reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
-            is_snoozed = today < reappear_dt
-        except:
-            is_snoozed = False
+    def needs_water(row):
+        if pd.isna(row['Last Watered Date']): return True
+        days_since = (today - row['Last Watered Date']).days
+        snooze_val = str(row.get('Snooze Date', ""))
+        is_snoozed = False
+        if snooze_val and snooze_val.strip():
+            try:
+                reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
+                is_snoozed = today < reappear_dt
+            except:
+                is_snoozed = False
+        return days_since >= row['Frequency'] and not is_snoozed
 
-    return days_since >= row['Frequency'] and not is_snoozed
+    needs_action_df = df[df.apply(needs_water, axis=1)]
+    count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
     
-    # Needs Water Expander
     with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
         if not needs_action_df.empty:
             for index, row in needs_action_df.iterrows():
@@ -91,17 +86,15 @@ def needs_water(row):
                     with cols[2]:
                         if st.button("😴", key=f"s_{index}"):
                             st.session_state.water_expanded = True
-                            # Set the date it should REAPPEAR (2 days from now)
                             reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
                             df.at[index, 'Snooze Date'] = reappear_date
                             conn.update(data=df)
-                            st.rerun()                
+                            st.rerun()
         else:
             st.success("All plants are watered! ✨")
 
     # 5. Full Collection
     with st.expander("📋 View Full Collection"):
-        # Handle "Next Water" calculation safely
         df_view = df.copy()
         df_view['Next Water'] = df_view.apply(
             lambda r: r['Last Watered Date'] + timedelta(days=r['Frequency']) 
