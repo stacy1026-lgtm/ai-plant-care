@@ -87,7 +87,7 @@ if not df.empty:
                             conn.update(data=df)
                             st.rerun()
                         else:
-                        st.success("All plants are watered! ✨")
+                            st.success("All plants are watered! ✨")
 
     # 5. Full Collection
     with st.expander("📋 View Full Collection"):
