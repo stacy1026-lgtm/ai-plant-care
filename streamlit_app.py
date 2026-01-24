@@ -54,14 +54,24 @@ if not df.empty:
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
     
     # Calculate Thirsty Plants
-    def needs_water(row):
-        if pd.isna(row['Last Watered Date']): return True
-        days_since = (today - row['Last Watered Date']).days
-        is_snoozed = str(row.get('Snooze Date', "")) == today_str
-        return days_since >= row['Frequency'] and not is_snoozed
+def needs_water(row):
+    if pd.isna(row['Last Watered Date']): return True
+    
+    # Calculate days since last watering
+    days_since = (today - row['Last Watered Date']).days
+    
+    # Check Snooze Status
+    snooze_val = str(row.get('Snooze Date', ""))
+    is_snoozed = False
+    if snooze_val:
+        try:
+            # If Today is earlier than the Reappear Date, it's still snoozed
+            reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
+            is_snoozed = today < reappear_dt
+        except:
+            is_snoozed = False
 
-    needs_action_df = df[df.apply(needs_water, axis=1)]
-    count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
+    return days_since >= row['Frequency'] and not is_snoozed
     
     # Needs Water Expander
     with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
