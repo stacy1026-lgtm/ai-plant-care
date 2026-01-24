@@ -85,9 +85,9 @@ if not df.empty:
                             reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
                             df.at[index, 'Snooze Date'] = reappear_date
                             conn.update(data=df)
-                            st.rerun()
-                        else:
-                            st.success("All plants are watered! ✨")
+                            st.rerun()                
+        else:
+            st.success("All plants are watered! ✨")
 
     # 5. Full Collection
     with st.expander("📋 View Full Collection"):
