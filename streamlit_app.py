@@ -77,19 +77,19 @@ if not df.empty:
                         st.markdown(f"**{row['Plant Name']}**")
                         st.caption(f"Due every {row['Frequency']} days")
                     with cols[1]:
-                if st.button("💧", key=f"w_{index}"):
-                    st.session_state.water_expanded = True
-                    
-                    # 1. Update the main collection for current tracking
-                    df.at[index, 'Last Watered Date'] = today_str
-                    conn.update(data=df)
-                    
-                    # 2. Append to History (New Sheet)
-                    history_entry = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
-                    # Assuming your connection can target a second worksheet named 'History'
-                    conn.create(worksheet="History", data=history_entry) 
-                    
-                    st.rerun()
+                    if st.button("💧", key=f"w_{index}"):
+                        st.session_state.water_expanded = True
+                        
+                        # 1. Update the main collection for current tracking
+                        df.at[index, 'Last Watered Date'] = today_str
+                        conn.update(data=df)
+                        
+                        # 2. Append to History (New Sheet)
+                        history_entry = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
+                        # Assuming your connection can target a second worksheet named 'History'
+                        conn.create(worksheet="History", data=history_entry) 
+                        
+                        st.rerun()
         else:
             st.success("All plants are watered! ✨")
 
