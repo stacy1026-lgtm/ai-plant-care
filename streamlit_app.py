@@ -3,7 +3,7 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
-st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
+st.warning("⚠️ YOU ARE IN THE DEVELEPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
@@ -88,7 +88,12 @@ if not df.empty:
                             history_entry = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
                             # Assuming your connection can target a second worksheet named 'History'
                             conn.create(worksheet="History", data=history_entry) 
-                            
+                    with cols[2]:
+                        if st.button("😴", key=f"s_{index}"):
+                            st.session_state.water_expanded = True
+                            reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                            df.at[index, 'Snooze Date'] = reappear_date
+                            conn.update(data=df)
                             st.rerun()
         else:
             st.success("All plants are watered! ✨")
