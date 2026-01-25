@@ -92,72 +92,71 @@ with st.expander("🥀 Plant Cemetery (Remove a Plant)"):
         
 # 4. Processing & Display
 if not df.empty:
-    # Get plants that need water
-    action_df = df[df.apply(needs_water, axis=1)]
+    # Safely convert dates
+    df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
+    df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
+    df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
     
-    count_label = f"({len(action_df)})" if not action_df.empty else ""
+    def needs_water(row):
+        if pd.isna(row['Last Watered Date']): return True
+        days_since = (today - row['Last Watered Date']).days
+        snooze_val = str(row.get('Snooze Date', ""))
+        is_snoozed = False
+        if snooze_val and snooze_val.strip():
+            try:
+                reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
+                is_snoozed = today < reappear_dt
+            except:
+                is_snoozed = False
+        return days_since >= row['Frequency'] and not is_snoozed
+
+    #needs_action_df = df[df.apply(needs_water, axis=1
+    needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')                           
+    count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
     
     with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
-        if not action_df.empty:
-            # --- SEARCH BAR LOGIC ---
-            # 1. Initialize session state for search if it doesn't exist
-            if 'search_query' not in st.session_state:
-                st.session_state.search_query = ""
-
-            # 2. Layout for Search + Clear Button
-            search_col, clear_col = st.columns([0.8, 0.2])
-            
-            # 3. The Search Input (linked to session state)
-            search_input = search_col.text_input(
-                "Search plants...", 
-                value=st.session_state.search_query, 
-                placeholder="Type plant name...",
-                label_visibility="collapsed"
-            )
-            
-            # 4. The Clear Button
-            if clear_col.button("Clear", use_container_width=True):
-                st.session_state.search_query = ""
-                st.rerun()
-            
-            # Update state with current input for filtering
-            st.session_state.search_query = search_input
-            
-            # 5. Filter and Sort the list
-            filtered_df = action_df[
-                action_df['Plant Name'].str.lower().str.contains(st.session_state.search_query.lower())
-            ].sort_values(by='Plant Name')
-
-            # --- DISPLAY THE FILTERED LIST ---
-            if filtered_df.empty:
-                st.write("No plants match your search.")
-            else:
-                for index, row in filtered_df.iterrows():
-                    with st.container(border=True):
-                        st.markdown(f"**{row['Plant Name']}** ({row['Acquisition Date']})")
-                        st.write(f"Every {row['Frequency']} days")
-                        
+        if not needs_action_df.empty:
+            for index, row in needs_action_df.iterrows():
+                with st.container(border=True):
+                    cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
+                    with cols[0]:
+                        st.markdown(f"**{row['Plant Name']}**")
+                        st.markdown(f"{row['Acquisition Date']}")
+                        st.caption(f"Due every {row['Frequency']} days")
+                    with cols[1]:
                         if st.button("💧", key=f"w_{index}"):
-                            # Update Main Data
+                            st.session_state.water_expanded = True
+                            
+                            # 1. Update main table
                             df.at[index, 'Last Watered Date'] = today_str
                             conn.update(data=df)
                             
-                            # Log to History
+                            # 2. Append to History Safely
                             try:
+                                # Read existing history
                                 history_df = conn.read(worksheet="History", ttl=0)
+                                # Create new row
                                 new_log = pd.DataFrame([{
                                     "Plant Name": row['Plant Name'], 
-                                    "Date Watered": today_str,
+                                    "Date Watered": today_str, 
                                     "Acquisition Date": row['Acquisition Date']
                                 }])
+                                # Combine and update
                                 updated_history = pd.concat([history_df, new_log], ignore_index=True)
                                 conn.update(worksheet="History", data=updated_history)
-                            except:
-                                pass
-                                
+                            except Exception as e:
+                                st.error(f"Could not log history: {e}")
+                            
+                            st.rerun()
+                    with cols[2]:
+                        if st.button("😴", key=f"s_{index}"):
+                            st.session_state.water_expanded = True
+                            reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                            df.at[index, 'Snooze Date'] = reappear_date
+                            conn.update(data=df)
                             st.rerun()
         else:
-            st.success("All plants are happy and hydrated! 🎉")
+            st.success("All plants are watered! ✨")
 
     # 5. Full Collection
     with st.expander("📋 View Full Collection"):
