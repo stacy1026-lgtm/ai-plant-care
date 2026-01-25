@@ -10,12 +10,22 @@ from datetime import datetime, timedelta
 # --- 1. DEFINE FUNCTIONS FIRST ---
 def needs_water(row):
     try:
-        last_watered = pd.to_datetime(row['Last Watered Date']).date()
+        # Get today's date
+        today = datetime.now().date()
+        
+        # Convert spreadsheet text (like "01/25/2026") into a real Date object
+        # errors='coerce' prevents crashing if the cell is empty
+        last_watered = pd.to_datetime(row['Last Watered Date'], errors='coerce').date()
+        
+        if pd.isna(last_watered):
+            return True # If no date found, it needs water
+            
         frequency = int(row['Frequency'])
-        days_since = (datetime.now().date() - last_watered).days
+        days_since = (today - last_watered).days
+        
         return days_since >= frequency
     except:
-        return True
+        return True # Default to True if data is messy
 
 st.warning("⚠️ YOU ARE IN THE DEVELEPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
