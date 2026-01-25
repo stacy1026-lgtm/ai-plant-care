@@ -29,21 +29,25 @@ def needs_water(row):
     try:
         today = datetime.now().date()
         
-        # 1. Convert the text date from the sheet into a real Date object
-        # errors='coerce' ensures that empty or messy cells don't crash the app
+        # 1. Check Snooze Date first
+        snooze_val = row.get('Snooze Date')
+        if pd.notna(snooze_val) and snooze_val != "":
+            snooze_dt = pd.to_datetime(snooze_val, errors='coerce').date()
+            if pd.notna(snooze_dt) and snooze_dt > today:
+                return False  # Hide if snoozed for the future
+        
+        # 2. Check Watering Frequency
         last_val = row.get('Last Watered Date')
         last_dt = pd.to_datetime(last_val, errors='coerce').date()
         
-        # 2. If the date is missing, the plant needs water
         if pd.isna(last_dt):
-            return True
+            return True # Needs water if never watered
             
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
         
         return days_since >= frequency
     except:
-        # 3. Default to True if data is corrupted or missing
         return True
 
 #needs_action_df = df[df.apply(needs_water, axis=1
