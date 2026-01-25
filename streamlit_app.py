@@ -94,6 +94,7 @@ if not df.empty:
     # Safely convert dates
     df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
+    df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
     
     def needs_water(row):
         if pd.isna(row['Last Watered Date']): return True
@@ -117,7 +118,7 @@ if not df.empty:
                 with st.container(border=True):
                     cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                     with cols[0]:
-                        st.markdown(f"**{row['Plant Name']}**")
+                        st.markdown(f"**{row['Unique Label']}**")
                         st.markdown(f"{row['Acquisition Date']}")
                         st.caption(f"Due every {row['Frequency']} days")
                     with cols[1]:
@@ -133,7 +134,7 @@ if not df.empty:
                                 # Read existing history
                                 history_df = conn.read(worksheet="History", ttl=0)
                                 # Create new row
-                                new_log = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
+                                new_log = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}], "Acquisition Date": row['Acquisition Date'])
                                 # Combine and update
                                 updated_history = pd.concat([history_df, new_log], ignore_index=True)
                                 conn.update(worksheet="History", data=updated_history)
@@ -169,7 +170,7 @@ if not df.empty:
                 hist['Date Watered'] = pd.to_datetime(hist['Date Watered']).dt.date
                 suggestions_found = False
                 
-                for plant in hist['Plant Name'].unique():
+                for (name, acq), plant_history in hist.groupby(['Plant Name', 'Acquisition Date']):
                     plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
                     
                     if len(plant_dates) >= 3:
