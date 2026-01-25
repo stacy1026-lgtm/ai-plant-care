@@ -166,9 +166,7 @@ if not df.empty:
     df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
     df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
-    
 
-    st.divider()
     # Section 5: Full Collection
     st.divider()
     with st.expander("📋 View Full Collection"):
