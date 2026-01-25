@@ -118,7 +118,7 @@ with st.expander("➕ Add a New Plant"):
                 st.rerun()
                 
 # 3.5 Delete / RIP Plant
-with st.expander("🥀 Plant Cemetery (Remove a Plant)"):
+with st.expander("💀 Plant Cemetery (Remove a Plant)"):
     if not df.empty:
         df_delete = df.copy()
         df_delete['Display'] = df_delete['Plant Name'] + " (Acquired: " + df_delete['Acquisition Date'].astype(str) + ")"
