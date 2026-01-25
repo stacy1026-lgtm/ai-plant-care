@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
+from datetime import timedelta
 
 st.warning("⚠️ YOU ARE IN THE DEVELEPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
@@ -106,29 +107,31 @@ if not df.empty:
     with st.expander(f"🚿 Plants to Water ({len(action_df)})", expanded=True):
         if not action_df.empty:
             # Search Session State
-            if "search_text" not in st.session_state:
-                st.session_state.search_text = ""
-
-            # Search UI
+            if "search_box" not in st.session_state:
+                st.session_state.search_box = ""
+            
+            # 2. Create the Search UI
             s_col, c_col = st.columns([0.8, 0.2])
             
-            search_input = s_col.text_input(
+            # The "value" comes from session state
+            search_query = s_col.text_input(
                 "Search...", 
-                value=st.session_state.search_text,
-                placeholder="Type plant name...",
-                label_visibility="collapsed",
-                key="water_search_box"
+                value=st.session_state.search_box, 
+                key="search_input_widget", # Internal key for the widget
+                label_visibility="collapsed"
             )
-
+            
+            # When Clear is clicked, we reset the session state variable
             if c_col.button("Clear", use_container_width=True):
-                st.session_state.search_text = ""
-                st.rerun()
-
-            st.session_state.search_text = search_input
-
-            # Filter & Alphabetical Sort
+                st.session_state.search_box = "" # Reset variable
+                st.rerun() # Refresh to empty the text box
+            
+            # 3. Update the variable with whatever is currently typed
+            st.session_state.search_box = search_query
+            
+            # 4. Filter the list using the updated variable
             filtered_df = action_df[
-                action_df['Plant Name'].str.lower().str.contains(st.session_state.search_text.lower())
+                action_df['Plant Name'].str.lower().str.contains(st.session_state.search_box.lower())
             ].sort_values(by='Plant Name')
 
             # Display
@@ -144,16 +147,24 @@ if not df.empty:
         else:
             st.success("All plants are watered!")
 
-    # 5. Full Collection
+    # Section 5: Full Collection
     with st.expander("📋 View Full Collection"):
-        df_view = df.copy().sort_values(by='Plant Name')
-        #df_view = df.copy()
-        df_view['Next Water'] = df_view.apply(
-            lambda r: r['Last Watered Date'] + timedelta(days=r['Frequency']) 
-            if pd.notna(r['Last Watered Date']) else "Needs Date", axis=1
-        )
-        st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
-                     use_container_width=True, hide_index=True)
+        if not df.empty:
+            df_view = df.copy()
+            
+            # 1. FIX THE DATE ERROR: Convert string to datetime objects
+            df_view['Last Watered Date'] = pd.to_datetime(df_view['Last Watered Date']).dt.date
+            
+            # 2. CALC NEXT WATER: Now math works because both are date/number types
+            df_view['Next Water'] = df_view.apply(
+                lambda r: r['Last Watered Date'] + timedelta(days=int(r['Frequency']))
+                if pd.notna(r['Last Watered Date']) else "Needs Date", 
+                axis=1
+            )
+            
+            # Sort and display
+            st.dataframe(df_view.sort_values(by='Plant Name'), use_container_width=True)
+        
 # 6. Smart Frequency Analysis
     st.divider()
     with st.expander("📊 Smart Frequency Analysis", expanded=False):
