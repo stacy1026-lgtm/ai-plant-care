@@ -21,6 +21,19 @@ for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dism
 total_plants = len(df) if not df.empty else 0
 today = date.today()
 today_str = today.strftime("%m/%d/%Y")
+#Function to determine is something needs watered
+    def needs_water(row):
+        if pd.isna(row['Last Watered Date']): return True
+        days_since = (today - row['Last Watered Date']).days
+        snooze_val = str(row.get('Snooze Date', ""))
+        is_snoozed = False
+        if snooze_val and snooze_val.strip():
+            try:
+                reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
+                is_snoozed = today < reappear_dt
+            except:
+                is_snoozed = False
+        return days_since >= row['Frequency'] and not is_snoozed
 
 # 2. Header
 st.title("🪴 My Plant Garden")
@@ -146,19 +159,6 @@ if not df.empty:
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
     df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
     
-    def needs_water(row):
-        if pd.isna(row['Last Watered Date']): return True
-        days_since = (today - row['Last Watered Date']).days
-        snooze_val = str(row.get('Snooze Date', ""))
-        is_snoozed = False
-        if snooze_val and snooze_val.strip():
-            try:
-                reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
-                is_snoozed = today < reappear_dt
-            except:
-                is_snoozed = False
-        return days_since >= row['Frequency'] and not is_snoozed
-
     # Section 5: Full Collection
     with st.expander("📋 View Full Collection"):
         if not df.empty:
