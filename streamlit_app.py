@@ -134,7 +134,11 @@ if not df.empty:
                                 # Read existing history
                                 history_df = conn.read(worksheet="History", ttl=0)
                                 # Create new row
-                                new_log = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}], "Acquisition Date": row['Acquisition Date'])
+                                new_log = pd.DataFrame([{
+                                    "Plant Name": row['Plant Name'], 
+                                    "Date Watered": today_str, 
+                                    "Acquisition Date": row['Acquisition Date']
+                                }])
                                 # Combine and update
                                 updated_history = pd.concat([history_df, new_log], ignore_index=True)
                                 conn.update(worksheet="History", data=updated_history)
