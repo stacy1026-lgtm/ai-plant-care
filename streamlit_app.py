@@ -160,6 +160,7 @@ if not df.empty:
             st.success("All plants are watered! ✨")
             st.divider()
     # Section 5: Full Collection
+    st.divider()
     with st.expander("📋 View Full Collection"):
         if not df.empty:
             # Alphabetical list for the dropdown
@@ -203,7 +204,7 @@ if not df.empty:
         st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
                      use_container_width=True, hide_index=True)
 # 6. Smart Frequency Analysis
-    st.divider()
+
     with st.expander("📊 Smart Frequency Analysis", expanded=False):
         try:
             hist = conn.read(worksheet="History", ttl=0)
