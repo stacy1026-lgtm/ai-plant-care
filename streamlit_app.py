@@ -49,12 +49,9 @@ with st.expander("➕ Add a New Plant"):
 # 3.5 Delete / RIP Plant
 with st.expander("🥀 Plant Cemetery (Remove a Plant)"):
     if not df.empty:
-        # Create labels that include name and date for the dropdown
-        # e.g., "Snake Plant (Acquired: 01/20/2024)"
         df_delete = df.copy()
         df_delete['Display'] = df_delete['Plant Name'] + " (Acquired: " + df_delete['Acquisition Date'].astype(str) + ")"
         
-        # Selectbox with search-as-you-type enabled by default
         selected_label = st.selectbox(
             "Select the plant that didn't make it:",
             options=df_delete['Display'].tolist(),
@@ -63,20 +60,34 @@ with st.expander("🥀 Plant Cemetery (Remove a Plant)"):
         )
         
         if selected_label:
-            # Find the original index based on the label
             idx_to_remove = df_delete[df_delete['Display'] == selected_label].index[0]
-            plant_to_remove = df_delete.at[idx_to_remove, 'Plant Name']
+            plant_name = df_delete.at[idx_to_remove, 'Plant Name']
             
-            st.warning(f"Are you sure you want to remove **{plant_to_remove}**? This cannot be undone.")
+            # Additional detail for the history log
+            reason = st.text_input("What happened? (e.g., Overwatered, Pests, Light)", placeholder="Optional")
+            
+            st.warning(f"Removing **{plant_name}** from your collection.")
             
             if st.button("Confirm Removal", type="primary"):
-                # Drop the row and update Google Sheets
+                # 1. Log to Graveyard tab
+                try:
+                    grave_df = conn.read(worksheet="Graveyard", ttl=0)
+                    death_entry = pd.DataFrame([{
+                        "Plant Name": plant_name,
+                        "Acquired": df_delete.at[idx_to_remove, 'Acquisition Date'],
+                        "RIP Date": today_str,
+                        "Reason": reason
+                    }])
+                    updated_grave = pd.concat([grave_df, death_entry], ignore_index=True)
+                    conn.update(worksheet="Graveyard", data=updated_grave)
+                except:
+                    st.info("Note: 'Graveyard' tab not found in Sheets, skipping the log.")
+
+                # 2. Remove from main table
                 df = df.drop(idx_to_remove)
                 conn.update(data=df)
-                st.success(f"{plant_to_remove} has been removed.")
+                st.success(f"{plant_name} moved to the cemetery.")
                 st.rerun()
-    else:
-        st.write("No plants to remove!")
         
 # 4. Processing & Display
 if not df.empty:
