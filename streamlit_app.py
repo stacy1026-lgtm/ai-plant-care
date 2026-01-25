@@ -1,8 +1,30 @@
-
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
+
+import streamlit as st
+import pandas as pd
+from datetime import datetime, timedelta
+
+# --- 1. DEFINE FUNCTIONS FIRST ---
+def needs_water(row):
+    try:
+        last_watered = pd.to_datetime(row['Last Watered Date']).date()
+        frequency = int(row['Frequency'])
+        days_since = (datetime.now().date() - last_watered).days
+        return days_since >= frequency
+    except:
+        return True
+
+# --- 2. LOAD DATA ---
+# (Your conn.read logic here)
+# df = conn.read(...)
+
+# --- 3. CALCULATE ACTION LISTS ---
+# Move this line here, BEFORE line 30
+needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')
+count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
 
 st.warning("⚠️ YOU ARE IN THE DEVELEPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
