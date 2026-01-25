@@ -99,73 +99,50 @@ with st.expander("🥀 Plant Cemetery (Remove a Plant)"):
                 st.success(f"{plant_name} moved to the cemetery.")
                 st.rerun()
         
-# 4. Processing & Display
+# Section 4: Water List
 if not df.empty:
-    # 1. Get the list of plants needing water
     action_df = df[df.apply(needs_water, axis=1)]
-    count_label = f"({len(action_df)})" if not action_df.empty else ""
     
-    with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
+    with st.expander(f"🚿 Plants to Water ({len(action_df)})", expanded=True):
         if not action_df.empty:
-            
-            # --- SEARCH & CLEAR LOGIC ---
-            # Initialize search state if it doesn't exist
+            # Search Session State
             if "search_text" not in st.session_state:
                 st.session_state.search_text = ""
 
-            # Create columns for the Search Bar and Clear Button
-            col1, col2 = st.columns([0.85, 0.15])
-
-            # The Search Bar
-            search_input = col1.text_input(
-                "Search plants needing water...",
+            # Search UI
+            s_col, c_col = st.columns([0.8, 0.2])
+            
+            search_input = s_col.text_input(
+                "Search...", 
                 value=st.session_state.search_text,
                 placeholder="Type plant name...",
                 label_visibility="collapsed",
-                key="search_input_widget"
+                key="water_search_box"
             )
 
-            # The Clear Button
-            if col2.button("Clear", use_container_width=True):
+            if c_col.button("Clear", use_container_width=True):
                 st.session_state.search_text = ""
                 st.rerun()
 
-            # Update the state with current input
             st.session_state.search_text = search_input
 
-            # 2. Filter and Sort (Alphabetical)
+            # Filter & Alphabetical Sort
             filtered_df = action_df[
                 action_df['Plant Name'].str.lower().str.contains(st.session_state.search_text.lower())
             ].sort_values(by='Plant Name')
 
-            # --- DISPLAY THE LIST ---
-            if filtered_df.empty:
-                st.info("No plants match your search.")
-            else:
-                for index, row in filtered_df.iterrows():
-                    with st.container(border=True):
-                        # Use our Unique Label (Name + Date) to avoid confusion
-                        st.markdown(f"**{row['Plant Name']}**")
-                        st.caption(f"Acquired: {row['Acquisition Date']}")
-                        
-                        if st.button("💧 Mark as Watered", key=f"w_{index}"):
-                            # Update Main Sheet
-                            df.at[index, 'Last Watered Date'] = today_str
-                            conn.update(data=df)
-                            
-                            # Log to History with Unique Label data
-                            history_df = conn.read(worksheet="History", ttl=0)
-                            new_log = pd.DataFrame([{
-                                "Plant Name": row['Plant Name'], 
-                                "Acquisition Date": row['Acquisition Date'],
-                                "Date Watered": today_str
-                            }])
-                            updated_history = pd.concat([history_df, new_log], ignore_index=True)
-                            conn.update(worksheet="History", data=updated_history)
-                            
-                            st.rerun()
+            # Display
+            for index, row in filtered_df.iterrows():
+                with st.container(border=True):
+                    st.markdown(f"**{row['Plant Name']}**")
+                    st.caption(f"Acquired: {row['Acquisition Date']}")
+                    
+                    if st.button("💧 Watered", key=f"w_{index}"):
+                        df.at[index, 'Last Watered Date'] = datetime.now().strftime("%m/%d/%Y")
+                        conn.update(data=df)
+                        st.rerun()
         else:
-            st.success("All plants are hydrated! 🌿")
+            st.success("All plants are watered!")
 
     # 5. Full Collection
     with st.expander("📋 View Full Collection"):
