@@ -144,8 +144,8 @@ if not df.empty:
                             dismissed_val = current_match.get('Dismissed Gap', [0]).values[0]
                             dismissed_gap = int(dismissed_val) if pd.notnull(dismissed_val) else 0
                             # Only suggest if it's different from current AND different from what was dismissed
-                                if avg_gap != current_freq and avg_gap != dismissed_gap:
-                                    suggestions_found = True
+                            if avg_gap != current_freq and avg_gap != dismissed_gap:
+                                suggestions_found = True
                             
                             # Only suggest if the difference is at least 1 day
                             if avg_gap != current_freq:
