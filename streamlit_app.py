@@ -118,7 +118,7 @@ if not df.empty:
                 with st.container(border=True):
                     cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                     with cols[0]:
-                        st.markdown(f"**{row['Unique Label']}**")
+                        st.markdown(f"**{row['Plant Name']}**")
                         st.markdown(f"{row['Acquisition Date']}")
                         st.caption(f"Due every {row['Frequency']} days")
                     with cols[1]:
