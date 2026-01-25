@@ -21,6 +21,15 @@ total_plants = len(df) if not df.empty else 0
 today = date.today()
 today_str = today.strftime("%m/%d/%Y")
 
+def needs_water(row):
+    try:
+        last_watered = pd.to_datetime(row['Last Watered Date']).date()
+        freq = int(row['Frequency'])
+        days_since = (datetime.now().date() - last_watered).days
+        return days_since >= freq
+    except:
+        return True
+
 # 2. Header
 st.title("🪴 My Plant Garden")
 st.markdown(f"### Total Plants: **{total_plants}**")
