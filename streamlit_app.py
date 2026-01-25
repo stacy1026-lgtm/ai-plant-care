@@ -172,8 +172,11 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                     st.rerun()
             
             if not suggestions_found:
-                
-        except Exception as e:
-            st.warning("History tab not found. Please create a sheet named 'History' with 'Plant Name' and 'Date Watered' headers.")        
+                st.write("Current frequencies match your habits or pending more data!")
+        else:
+            st.info("Log 3+ waterings per plant to see smart insights.")
+            
+    except Exception as e:
+        st.warning("History tab not found. Ensure 'History' worksheet exists with headers.")     
 else:
     st.info("Your garden is empty.")
