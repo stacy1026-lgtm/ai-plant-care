@@ -171,7 +171,7 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                     st.info(f"Suggestion hidden until next watering.")
                                     st.rerun()
             
-            if not suggestions_found
+            if not suggestions_found:
                 
         except Exception as e:
             st.warning("History tab not found. Please create a sheet named 'History' with 'Plant Name' and 'Date Watered' headers.")        
