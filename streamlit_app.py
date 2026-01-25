@@ -3,7 +3,7 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
-st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
+st.warning("⚠️ YOU ARE IN THE DEVELEPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
@@ -13,7 +13,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0)
 
 # Ensure columns exist
-for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name']:
+for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dismissed Gap']:
     if col not in df.columns:
         df[col] = ""
 
@@ -75,12 +75,28 @@ if not df.empty:
                     cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                     with cols[0]:
                         st.markdown(f"**{row['Plant Name']}**")
+                        st.markdown(f"{row['Acquisition Date']}")
                         st.caption(f"Due every {row['Frequency']} days")
                     with cols[1]:
                         if st.button("💧", key=f"w_{index}"):
                             st.session_state.water_expanded = True
+                            
+                            # 1. Update main table
                             df.at[index, 'Last Watered Date'] = today_str
                             conn.update(data=df)
+                            
+                            # 2. Append to History Safely
+                            try:
+                                # Read existing history
+                                history_df = conn.read(worksheet="History", ttl=0)
+                                # Create new row
+                                new_log = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
+                                # Combine and update
+                                updated_history = pd.concat([history_df, new_log], ignore_index=True)
+                                conn.update(worksheet="History", data=updated_history)
+                            except Exception as e:
+                                st.error(f"Could not log history: {e}")
+                            
                             st.rerun()
                     with cols[2]:
                         if st.button("😴", key=f"s_{index}"):
@@ -101,5 +117,57 @@ if not df.empty:
         )
         st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
                      use_container_width=True, hide_index=True)
+# 6. Smart Frequency Analysis
+    st.divider()
+    with st.expander("📊 Smart Frequency Analysis", expanded=False):
+        try:
+            hist = conn.read(worksheet="History", ttl=0)
+            if not hist.empty:
+                hist['Date Watered'] = pd.to_datetime(hist['Date Watered']).dt.date
+                suggestions_found = False
+                
+                for plant in hist['Plant Name'].unique():
+                    plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
+                    
+                    if len(plant_dates) >= 3:
+                        avg_gap = int((plant_dates.diff().mean()).days)
+                        current_match = df[df['Plant Name'] == plant]
+                        
+                        if not current_match.empty:
+                            current_freq = int(current_match['Frequency'].values[0])
+                            
+                            # Safely get the dismissed gap
+                            d_gap_val = current_match.get('Dismissed Gap', [0]).values[0]
+                            dismissed_gap = int(d_gap_val) if pd.notnull(d_gap_val) else 0
+                            
+                            # ONLY show if avg is different from BOTH current and dismissed
+                            if avg_gap != current_freq and avg_gap != dismissed_gap:
+                                suggestions_found = True
+                                diff_text = "longer" if avg_gap > current_freq else "shorter"
+                                
+                                with st.container(border=True):
+                                    st.write(f"### {plant}")
+                                    st.write(f"Actual average: **{avg_gap} days** (Current: {current_freq}d)")
+                                    
+                                    btn_cols = st.columns([0.15, 0.15, 0.7])
+                                    if btn_cols[0].button("✔️", key=f"up_{plant}"):
+                                        idx = df[df['Plant Name'] == plant].index[0]
+                                        df.at[idx, 'Frequency'] = avg_gap
+                                        df.at[idx, 'Dismissed Gap'] = 0 
+                                        conn.update(data=df)
+                                        st.rerun()
+                                        
+                                    if btn_cols[1].button("✖️", key=f"no_{plant}"):
+                                        idx = df[df['Plant Name'] == plant].index[0]
+                                        df.at[idx, 'Dismissed Gap'] = avg_gap # Store the avg we rejected
+                                        conn.update(data=df)
+                                        st.rerun()
+                
+                if not suggestions_found:
+                    st.write("Frequencies match your habits!")
+            else:
+                st.info("Log 3+ waterings to see insights.")
+        except Exception as e:
+            st.error(f"Analysis Error: {e}")        
 else:
     st.info("Your garden is empty.")
