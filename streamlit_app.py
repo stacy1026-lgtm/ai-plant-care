@@ -75,6 +75,7 @@ if not df.empty:
                     cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                     with cols[0]:
                         st.markdown(f"**{row['Plant Name']}**")
+                        st.markdown(f"**{row['Acquisition Date']}**")
                         st.caption(f"Due every {row['Frequency']} days")
                     with cols[1]:
                         if st.button("💧", key=f"w_{index}"):
