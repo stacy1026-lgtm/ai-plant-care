@@ -166,56 +166,57 @@ if not df.empty:
         st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
                      use_container_width=True, hide_index=True)
 # 6. Smart Frequency Analysis
-st.divider()
-with st.expander("📊 Smart Frequency Analysis", expanded=False):
-    try:
-        hist = conn.read(worksheet="History", ttl=0)
-        if not hist.empty:
-            hist['Date Watered'] = pd.to_datetime(hist['Date Watered']).dt.date
-            suggestions_found = False
-            
-            # Group by Name AND Acquisition Date to tell identical plants apart
-            for (p_name, p_acq), p_history in hist.groupby(['Plant Name', 'Acquisition Date']):
-                p_dates = p_history['Date Watered'].sort_values()
+    st.divider()
+    with st.expander("📊 Smart Frequency Analysis", expanded=False):
+        try:
+            hist = conn.read(worksheet="History", ttl=0)
+            if not hist.empty:
+                # Ensure date conversion
+                hist['Date Watered'] = pd.to_datetime(hist['Date Watered']).dt.date
+                suggestions_found = False
                 
-                if len(p_dates) >= 3:
-                    avg_gap = int((p_dates.diff().mean()).days)
+                # Group by Name AND Acquisition Date to separate identical plants
+                for (p_name, p_acq), p_history in hist.groupby(['Plant Name', 'Acquisition Date']):
+                    p_dates = p_history['Date Watered'].sort_values()
                     
-                    # Match using both Name and Acquisition Date
-                    current_match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
-                    
-                    if not current_match.empty:
-                        idx = current_match.index[0]
-                        current_freq = int(current_match['Frequency'].values[0])
-                        d_gap_val = current_match.get('Dismissed Gap', [0]).values[0]
-                        dismissed_gap = int(d_gap_val) if pd.notnull(d_gap_val) else 0
+                    if len(p_dates) >= 3:
+                        avg_gap = int((p_dates.diff().mean()).days)
                         
-                        if avg_gap != current_freq and avg_gap != dismissed_gap:
-                            suggestions_found = True
-                            diff_text = "longer" if avg_gap > current_freq else "shorter"
+                        # Find specific plant in main df
+                        match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
+                        
+                        if not match.empty:
+                            idx = match.index[0]
+                            current_f = int(match['Frequency'].values[0])
+                            # Handle dismissed gap
+                            d_val = match.get('Dismissed Gap', [0]).values[0]
+                            d_gap = int(d_val) if pd.notnull(d_val) else 0
                             
-                            with st.container(border=True):
-                                st.write(f"### {p_name}")
-                                st.caption(f"Acquired: {p_acq}")
-                                st.write(f"Average: **{avg_gap} days** (Current: {current_freq}d)")
-                                
-                                btn_cols = st.columns([0.15, 0.15, 0.7])
-                                
-                                # Use unique keys for buttons by combining name and index
-                                if btn_cols[0].button("✔️", key=f"up_{idx}"):
-                                    df.at[idx, 'Frequency'] = avg_gap
-                                    df.at[idx, 'Dismissed Gap'] = 0 
-                                    conn.update(data=df)
-                                    st.rerun()
+                            if avg_gap != current_f and avg_gap != d_gap:
+                                suggestions_found = True
+                                with st.container(border=True):
+                                    st.write(f"### {p_name}")
+                                    st.caption(f"ID: {p_acq}")
+                                    st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
                                     
-                                if btn_cols[1].button("✖️", key=f"no_{idx}"):
-                                    df.at[idx, 'Dismissed Gap'] = avg_gap
-                                    conn.update(data=df)
-                                    st.rerun()
-            
-            if not suggestions_found:
-                st.write("Frequencies match your habits!")
-    except Exception as e:
-        st.error(f"Analysis Error: {e}") 
-else:
+                                    b_cols = st.columns([0.15, 0.15, 0.7])
+                                    if b_cols[0].button("✔️", key=f"up_{idx}"):
+                                        df.at[idx, 'Frequency'] = avg_gap
+                                        df.at[idx, 'Dismissed Gap'] = 0 
+                                        conn.update(data=df)
+                                        st.rerun()
+                                    if b_cols[1].button("✖️", key=f"no_{idx}"):
+                                        df.at[idx, 'Dismissed Gap'] = avg_gap
+                                        conn.update(data=df)
+                                        st.rerun()
+                
+                if not suggestions_found:
+                    st.write("Frequencies match your habits!")
+            else:
+                st.info("Log 3+ waterings per plant for insights.")
+        except Exception as e:
+            st.error(f"Analysis Error: {e}")
+
+# --- LINE 220 ---
+else: # This must be at the FAR LEFT (zero spaces)
     st.info("Your garden is empty.")
