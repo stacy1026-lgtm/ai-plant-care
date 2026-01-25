@@ -27,17 +27,25 @@ st.title("🪴 My Plant Garden")
 st.markdown(f"### Total Plants: **{total_plants}**")
 
 def needs_water(row):
-    if pd.isna(row['Last Watered Date']): return True
-    days_since = (today - row['Last Watered Date']).days
-    snooze_val = str(row.get('Snooze Date', ""))
-    is_snoozed = False
-    if snooze_val and snooze_val.strip():
-        try:
-            reappear_dt = datetime.strptime(snooze_val, "%m/%d/%Y").date()
-            is_snoozed = today < reappear_dt
-        except:
-            is_snoozed = False
-    return days_since >= row['Frequency'] and not is_snoozed
+    try:
+        today = datetime.now().date()
+        
+        # 1. Convert the text date from the sheet into a real Date object
+        # errors='coerce' ensures that empty or messy cells don't crash the app
+        last_val = row.get('Last Watered Date')
+        last_dt = pd.to_datetime(last_val, errors='coerce').date()
+        
+        # 2. If the date is missing, the plant needs water
+        if pd.isna(last_dt):
+            return True
+            
+        frequency = int(row['Frequency'])
+        days_since = (today - last_dt).days
+        
+        return days_since >= frequency
+    except:
+        # 3. Default to True if data is corrupted or missing
+        return True
 
 #needs_action_df = df[df.apply(needs_water, axis=1
 needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')                           
