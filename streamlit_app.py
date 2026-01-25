@@ -116,69 +116,57 @@ if not df.empty:
         )
         st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
                      use_container_width=True, hide_index=True)
-    # 6. Smart Frequency Analysis
-    st.divider() # Adds a clean visual break
+# 6. Smart Frequency Analysis
+    st.divider()
     with st.expander("📊 Smart Frequency Analysis", expanded=False):
         try:
-            # Read history data
             hist = conn.read(worksheet="History", ttl=0)
-            
             if not hist.empty:
                 hist['Date Watered'] = pd.to_datetime(hist['Date Watered']).dt.date
-                
-                # Analyze each plant
                 suggestions_found = False
+                
                 for plant in hist['Plant Name'].unique():
                     plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
                     
-                    # Logic: Need at least 3 records to suggest a change
                     if len(plant_dates) >= 3:
-                        # Calculate average days between waterings
                         avg_gap = int((plant_dates.diff().mean()).days)
-                        
-                        # Get current frequency from the main dataframe
                         current_match = df[df['Plant Name'] == plant]
+                        
                         if not current_match.empty:
                             current_freq = int(current_match['Frequency'].values[0])
-                            # Get the dismissed gap (default to 0 if empty)
-                            dismissed_val = current_match.get('Dismissed Gap', [0]).values[0]
-                            dismissed_gap = int(dismissed_val) if pd.notnull(dismissed_val) else 0
-                            # Only suggest if it's different from current AND different from what was dismissed
-                            if avg_gap != current_freq and avg_gap != dismissed_gap:
-                                suggestions_found = True
                             
-                            # Only suggest if the difference is at least 1 day
-                            if avg_gap != current_freq:
+                            # Safely get the dismissed gap
+                            d_gap_val = current_match.get('Dismissed Gap', [0]).values[0]
+                            dismissed_gap = int(d_gap_val) if pd.notnull(d_gap_val) else 0
+                            
+                            # ONLY show if avg is different from BOTH current and dismissed
+                            if avg_gap != current_freq and avg_gap != dismissed_gap:
                                 suggestions_found = True
                                 diff_text = "longer" if avg_gap > current_freq else "shorter"
                                 
                                 with st.container(border=True):
                                     st.write(f"### {plant}")
-                                    st.write(f"Based on history, you water this plant every **{avg_gap} days**.")
-                                    st.write(f"This is **{diff_text}** than your current setting of {current_freq} days.")
-                                    st.info("Would you like to update the frequency?")
+                                    st.write(f"Actual average: **{avg_gap} days** (Current: {current_freq}d)")
                                     
-                                    # Buttons for user action
                                     btn_cols = st.columns([0.15, 0.15, 0.7])
                                     if btn_cols[0].button("✔️", key=f"up_{plant}"):
                                         idx = df[df['Plant Name'] == plant].index[0]
                                         df.at[idx, 'Frequency'] = avg_gap
+                                        df.at[idx, 'Dismissed Gap'] = 0 
                                         conn.update(data=df)
-                                        st.success(f"Updated {plant}!")
                                         st.rerun()
                                         
                                     if btn_cols[1].button("✖️", key=f"no_{plant}"):
                                         idx = df[df['Plant Name'] == plant].index[0]
-                                        df.at[idx, 'Dismissed Gap'] = avg_gap # Record the rejection
+                                        df.at[idx, 'Dismissed Gap'] = avg_gap # Store the avg we rejected
                                         conn.update(data=df)
                                         st.rerun()
                 
                 if not suggestions_found:
-                    st.write("Keep watering! More data needed to make suggestions.")
+                    st.write("Frequencies match your habits!")
             else:
-                st.info("No history found. Once you have 3+ records per plant, insights will appear here.")
-                
+                st.info("Log 3+ waterings to see insights.")
         except Exception as e:
-            st.warning("History tab not found. Please create a sheet named 'History' with 'Plant Name' and 'Date Watered' headers.")        
+            st.error(f"Analysis Error: {e}")        
 else:
     st.info("Your garden is empty.")
