@@ -13,6 +13,10 @@ st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
 df = conn.read(ttl=0)
 
+# Force types immediately after loading
+df['Last Watered Date'] = df['Last Watered Date'].astype(str)
+df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7)
+
 # Ensure columns exist
 for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dismissed Gap']:
     if col not in df.columns:
