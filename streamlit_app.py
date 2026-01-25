@@ -133,20 +133,6 @@ if not df.empty:
                 for plant in hist['Plant Name'].unique():
                     plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
                     
-                    # Inside your Smart Frequency loop:
-                    avg_gap = int((plant_dates.diff().mean()).days)
-                    dismissed_gap = int(current_match.get('Dismissed Gap', [0]).values[0] or 0)
-                    
-                    # Only show if the gap is different from what was previously dismissed
-                    if avg_gap != current_freq and avg_gap != dismissed_gap:
-                        # ... display container ...
-                        
-                        if btn_cols[1].button("✖️", key=f"no_{plant}"):
-                            idx = df[df['Plant Name'] == plant].index[0]
-                            df.at[idx, 'Dismissed Gap'] = avg_gap # Record that this specific gap was rejected
-                            conn.update(data=df)
-                            st.rerun()
-                    
                     # Logic: Need at least 3 records to suggest a change
                     if len(plant_dates) >= 3:
                         # Calculate average days between waterings
