@@ -158,7 +158,7 @@ if not df.empty:
                             st.rerun()
         else:
             st.success("All plants are watered! ✨")
-
+            st.divider()
     # Section 5: Full Collection
     with st.expander("📋 View Full Collection"):
         if not df.empty:
@@ -194,7 +194,6 @@ if not df.empty:
                 st.success(f"Updated {p_name}!")
                 st.rerun()
     
-            st.divider()
         df_view = df.copy().sort_values(by='Plant Name')
         #df_view = df.copy()
         df_view['Next Water'] = df_view.apply(
