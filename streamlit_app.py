@@ -110,7 +110,7 @@ if not df.empty:
                 is_snoozed = False
         return days_since >= row['Frequency'] and not is_snoozed
 
-    needs_action_df = df[df.apply(needs_water, axis=1
+    #needs_action_df = df[df.apply(needs_water, axis=1
     needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')                           
     count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
     
