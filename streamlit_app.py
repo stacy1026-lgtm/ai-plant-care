@@ -40,17 +40,62 @@ with st.expander("➕ Add a New Plant"):
                     "Frequency": int(new_freq),
                     "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
                     "Last Watered Date": new_water.strftime("%m/%d/%Y"),
-                    "Snooze Date": ""
+                    "Snooze Date": "",
+                    "Dismissed Gap": 0  # <--- Defaults to 0 in the database
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=df)
                 st.rerun()
+                
+# 3.5 Delete / RIP Plant
+with st.expander("🥀 Plant Cemetery (Remove a Plant)"):
+    if not df.empty:
+        df_delete = df.copy()
+        df_delete['Display'] = df_delete['Plant Name'] + " (Acquired: " + df_delete['Acquisition Date'].astype(str) + ")"
+        
+        selected_label = st.selectbox(
+            "Select the plant that didn't make it:",
+            options=df_delete['Display'].tolist(),
+            index=None,
+            placeholder="Type plant name..."
+        )
+        
+        if selected_label:
+            idx_to_remove = df_delete[df_delete['Display'] == selected_label].index[0]
+            plant_name = df_delete.at[idx_to_remove, 'Plant Name']
+            
+            # Additional detail for the history log
+            reason = st.text_input("What happened? (e.g., Overwatered, Pests, Light)", placeholder="Optional")
+            
+            st.warning(f"Removing **{plant_name}** from your collection.")
+            
+            if st.button("Confirm Removal", type="primary"):
+                # 1. Log to Graveyard tab
+                try:
+                    grave_df = conn.read(worksheet="Graveyard", ttl=0)
+                    death_entry = pd.DataFrame([{
+                        "Plant Name": plant_name,
+                        "Acquired": df_delete.at[idx_to_remove, 'Acquisition Date'],
+                        "RIP Date": today_str,
+                        "Reason": reason
+                    }])
+                    updated_grave = pd.concat([grave_df, death_entry], ignore_index=True)
+                    conn.update(worksheet="Graveyard", data=updated_grave)
+                except:
+                    st.info("Note: 'Graveyard' tab not found in Sheets, skipping the log.")
 
+                # 2. Remove from main table
+                df = df.drop(idx_to_remove)
+                conn.update(data=df)
+                st.success(f"{plant_name} moved to the cemetery.")
+                st.rerun()
+        
 # 4. Processing & Display
 if not df.empty:
     # Safely convert dates
     df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
+    df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
     
     def needs_water(row):
         if pd.isna(row['Last Watered Date']): return True
@@ -90,7 +135,11 @@ if not df.empty:
                                 # Read existing history
                                 history_df = conn.read(worksheet="History", ttl=0)
                                 # Create new row
-                                new_log = pd.DataFrame([{"Plant Name": row['Plant Name'], "Date Watered": today_str}])
+                                new_log = pd.DataFrame([{
+                                    "Plant Name": row['Plant Name'], 
+                                    "Date Watered": today_str, 
+                                    "Acquisition Date": row['Acquisition Date']
+                                }])
                                 # Combine and update
                                 updated_history = pd.concat([history_df, new_log], ignore_index=True)
                                 conn.update(worksheet="History", data=updated_history)
@@ -123,51 +172,52 @@ if not df.empty:
         try:
             hist = conn.read(worksheet="History", ttl=0)
             if not hist.empty:
+                # Ensure date conversion
                 hist['Date Watered'] = pd.to_datetime(hist['Date Watered']).dt.date
                 suggestions_found = False
                 
-                for plant in hist['Plant Name'].unique():
-                    plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
+                # Group by Name AND Acquisition Date to separate identical plants
+                for (p_name, p_acq), p_history in hist.groupby(['Plant Name', 'Acquisition Date']):
+                    p_dates = p_history['Date Watered'].sort_values()
                     
-                    if len(plant_dates) >= 3:
-                        avg_gap = int((plant_dates.diff().mean()).days)
-                        current_match = df[df['Plant Name'] == plant]
+                    if len(p_dates) >= 3:
+                        avg_gap = int((p_dates.diff().mean()).days)
                         
-                        if not current_match.empty:
-                            current_freq = int(current_match['Frequency'].values[0])
+                        # Find specific plant in main df
+                        match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
+                        
+                        if not match.empty:
+                            idx = match.index[0]
+                            current_f = int(match['Frequency'].values[0])
+                            # Handle dismissed gap
+                            d_val = match.get('Dismissed Gap', [0]).values[0]
+                            d_gap = int(d_val) if pd.notnull(d_val) else 0
                             
-                            # Safely get the dismissed gap
-                            d_gap_val = current_match.get('Dismissed Gap', [0]).values[0]
-                            dismissed_gap = int(d_gap_val) if pd.notnull(d_gap_val) else 0
-                            
-                            # ONLY show if avg is different from BOTH current and dismissed
-                            if avg_gap != current_freq and avg_gap != dismissed_gap:
+                            if avg_gap != current_f and avg_gap != d_gap:
                                 suggestions_found = True
-                                diff_text = "longer" if avg_gap > current_freq else "shorter"
-                                
                                 with st.container(border=True):
-                                    st.write(f"### {plant}")
-                                    st.write(f"Actual average: **{avg_gap} days** (Current: {current_freq}d)")
+                                    st.write(f"### {p_name}")
+                                    st.caption(f"ID: {p_acq}")
+                                    st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
                                     
-                                    btn_cols = st.columns([0.15, 0.15, 0.7])
-                                    if btn_cols[0].button("✔️", key=f"up_{plant}"):
-                                        idx = df[df['Plant Name'] == plant].index[0]
+                                    b_cols = st.columns([0.15, 0.15, 0.7])
+                                    if b_cols[0].button("✔️", key=f"up_{idx}"):
                                         df.at[idx, 'Frequency'] = avg_gap
                                         df.at[idx, 'Dismissed Gap'] = 0 
                                         conn.update(data=df)
                                         st.rerun()
-                                        
-                                    if btn_cols[1].button("✖️", key=f"no_{plant}"):
-                                        idx = df[df['Plant Name'] == plant].index[0]
-                                        df.at[idx, 'Dismissed Gap'] = avg_gap # Store the avg we rejected
+                                    if b_cols[1].button("✖️", key=f"no_{idx}"):
+                                        df.at[idx, 'Dismissed Gap'] = avg_gap
                                         conn.update(data=df)
                                         st.rerun()
                 
                 if not suggestions_found:
                     st.write("Frequencies match your habits!")
             else:
-                st.info("Log 3+ waterings to see insights.")
+                st.info("Log 3+ waterings per plant for insights.")
         except Exception as e:
-            st.error(f"Analysis Error: {e}")        
-else:
+            st.error(f"Analysis Error: {e}")
+
+# --- LINE 220 ---
+else: # This must be at the FAR LEFT (zero spaces)
     st.info("Your garden is empty.")
