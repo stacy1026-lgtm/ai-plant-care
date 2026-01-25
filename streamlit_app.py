@@ -40,7 +40,8 @@ with st.expander("➕ Add a New Plant"):
                     "Frequency": int(new_freq),
                     "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
                     "Last Watered Date": new_water.strftime("%m/%d/%Y"),
-                    "Snooze Date": ""
+                    "Snooze Date": "",
+                    "Dismissed Gap": 0  # <--- Defaults to 0 in the database
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=df)
