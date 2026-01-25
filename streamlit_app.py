@@ -82,7 +82,6 @@ if not df.empty:
                             
                             # 1. Update main table
                             df.at[index, 'Last Watered Date'] = today_str
-                            df.at[index, 'Dismissed Gap'] = 0  # Reset dismissal on new watering
                             conn.update(data=df)
                             
                             # 2. Append to History Safely
@@ -94,7 +93,6 @@ if not df.empty:
                                 # Combine and update
                                 updated_history = pd.concat([history_df, new_log], ignore_index=True)
                                 conn.update(worksheet="History", data=updated_history)
-                                
                             except Exception as e:
                                 st.error(f"Could not log history: {e}")
                             
@@ -132,20 +130,6 @@ if not df.empty:
                 suggestions_found = False
                 for plant in hist['Plant Name'].unique():
                     plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
-                    
-                    # Inside your Smart Frequency loop:
-                    avg_gap = int((plant_dates.diff().mean()).days)
-                    dismissed_gap = int(current_match.get('Dismissed Gap', [0]).values[0] or 0)
-                    
-                    # Only show if the gap is different from what was previously dismissed
-                    if avg_gap != current_freq and avg_gap != dismissed_gap:
-                        # ... display container ...
-                        
-                        if btn_cols[1].button("✖️", key=f"no_{plant}"):
-                            idx = df[df['Plant Name'] == plant].index[0]
-                            df.at[idx, 'Dismissed Gap'] = avg_gap # Record that this specific gap was rejected
-                            conn.update(data=df)
-                            st.rerun()
                     
                     # Logic: Need at least 3 records to suggest a change
                     if len(plant_dates) >= 3:
