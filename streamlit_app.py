@@ -1,3 +1,4 @@
+
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
@@ -160,49 +161,48 @@ if not df.empty:
 
     # Section 5: Full Collection
     with st.expander("📋 View Full Collection"):
-    if not df.empty:
-        # Alphabetical list for the dropdown
-        all_plants = df.sort_values(by='Plant Name')
-        
-        # 1. Manual Update UI
-        st.write("### ⚡ Quick Update")
-        col1, col2 = st.columns([0.7, 0.3])
-        
-        # Dropdown to select ANY plant
-        selected_plant_label = col1.selectbox(
-            "Select a plant to mark as watered:",
-            options=all_plants.apply(lambda r: f"{r['Plant Name']} ({r['Acquisition Date']})", axis=1)
+        if not df.empty:
+            # Alphabetical list for the dropdown
+            all_plants = df.sort_values(by='Plant Name')
+            
+            # 1. Manual Update UI
+            st.write("### ⚡ Quick Update")
+            col1, col2 = st.columns([0.7, 0.3])
+            
+            # Dropdown to select ANY plant
+            selected_plant_label = col1.selectbox(
+                "Select a plant to mark as watered:",
+                options=all_plants.apply(lambda r: f"{r['Plant Name']} ({r['Acquisition Date']})", axis=1)
+            )
+            
+            if col2.button("💧 Water Now", use_container_width=True):
+                # Find the actual index in the original dataframe
+                p_name = selected_plant_label.split(" (")[0]
+                p_acq = selected_plant_label.split(" (")[1].replace(")", "")
+                
+                idx = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)].index[0]
+                
+                # Update and Log
+                df.at[idx, 'Last Watered Date'] = datetime.now().strftime("%m/%d/%Y")
+                conn.update(data=df)
+                
+                # Log to History
+                history_df = conn.read(worksheet="History", ttl=0)
+                new_log = pd.DataFrame([{"Plant Name": p_name, "Acquisition Date": p_acq, "Date Watered": today_str}])
+                conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
+                
+                st.success(f"Updated {p_name}!")
+                st.rerun()
+    
+            st.divider()
+        df_view = df.copy().sort_values(by='Plant Name')
+        #df_view = df.copy()
+        df_view['Next Water'] = df_view.apply(
+            lambda r: r['Last Watered Date'] + timedelta(days=r['Frequency']) 
+            if pd.notna(r['Last Watered Date']) else "Needs Date", axis=1
         )
-        
-        if col2.button("💧 Water Now", use_container_width=True):
-            # Find the actual index in the original dataframe
-            p_name = selected_plant_label.split(" (")[0]
-            p_acq = selected_plant_label.split(" (")[1].replace(")", "")
-            
-            idx = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)].index[0]
-            
-            # Update and Log
-            df.at[idx, 'Last Watered Date'] = datetime.now().strftime("%m/%d/%Y")
-            conn.update(data=df)
-            
-            # Log to History
-            history_df = conn.read(worksheet="History", ttl=0)
-            new_log = pd.DataFrame([{"Plant Name": p_name, "Acquisition Date": p_acq, "Date Watered": today_str}])
-            conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
-            
-            st.success(f"Updated {p_name}!")
-            st.rerun()
-    
-        st.divider()
-    
-    df_view = df.copy().sort_values(by='Plant Name')
-    #df_view = df.copy()
-    df_view['Next Water'] = df_view.apply(
-        lambda r: r['Last Watered Date'] + timedelta(days=r['Frequency']) 
-        if pd.notna(r['Last Watered Date']) else "Needs Date", axis=1
-    )
-    st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
-                 use_container_width=True, hide_index=True)
+        st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
+                     use_container_width=True, hide_index=True)
 # 6. Smart Frequency Analysis
     st.divider()
     with st.expander("📊 Smart Frequency Analysis", expanded=False):
