@@ -160,7 +160,7 @@ if not df.empty:
     df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
     
 
-            st.divider()
+    st.divider()
     # Section 5: Full Collection
     st.divider()
     with st.expander("📋 View Full Collection"):
