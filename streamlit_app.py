@@ -130,25 +130,6 @@ if not df.empty:
                 suggestions_found = False
                 for plant in hist['Plant Name'].unique():
                     plant_dates = hist[hist['Plant Name'] == plant]['Date Watered'].sort_values()
-                    # Around line 133 (Inside the Smart Frequency loop)
-                    if not current_match.empty:
-                        current_freq = int(current_match['Frequency'].values[0])
-                        # Get the dismissed gap (default to 0 if empty)
-                        dismissed_val = current_match.get('Dismissed Gap', [0]).values[0]
-                        dismissed_gap = int(dismissed_val) if pd.notnull(dismissed_val) else 0
-                        
-                        # Only suggest if it's different from current AND different from what was dismissed
-                        if avg_gap != current_freq and avg_gap != dismissed_gap:
-                            suggestions_found = True
-                            # ... (st.write code) ...
-                    
-                            # Update the ✖️ button logic:
-                            if btn_cols[1].button("✖️", key=f"no_{plant}"):
-                                idx = df[df['Plant Name'] == plant].index[0]
-                                df.at[idx, 'Dismissed Gap'] = avg_gap # Record the rejection
-                                conn.update(data=df)
-                                st.rerun()
-
                     
                     # Logic: Need at least 3 records to suggest a change
                     if len(plant_dates) >= 3:
@@ -159,6 +140,12 @@ if not df.empty:
                         current_match = df[df['Plant Name'] == plant]
                         if not current_match.empty:
                             current_freq = int(current_match['Frequency'].values[0])
+                            # Get the dismissed gap (default to 0 if empty)
+                            dismissed_val = current_match.get('Dismissed Gap', [0]).values[0]
+                            dismissed_gap = int(dismissed_val) if pd.notnull(dismissed_val) else 0
+                            # Only suggest if it's different from current AND different from what was dismissed
+                                if avg_gap != current_freq and avg_gap != dismissed_gap:
+                                    suggestions_found = True
                             
                             # Only suggest if the difference is at least 1 day
                             if avg_gap != current_freq:
@@ -181,7 +168,10 @@ if not df.empty:
                                         st.rerun()
                                         
                                     if btn_cols[1].button("✖️", key=f"no_{plant}"):
-                                        st.write("Suggestion dismissed.")
+                                        idx = df[df['Plant Name'] == plant].index[0]
+                                        df.at[idx, 'Dismissed Gap'] = avg_gap # Record the rejection
+                                        conn.update(data=df)
+                                        st.rerun()
                 
                 if not suggestions_found:
                     st.write("Keep watering! More data needed to make suggestions.")
