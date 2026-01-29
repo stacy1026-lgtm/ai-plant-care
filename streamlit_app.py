@@ -1,4 +1,4 @@
-
+import time # Add this at the very top with your imports
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
@@ -69,30 +69,36 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                     st.markdown(f"Last Watered on {row['Last Watered Date']}")
                     st.caption(f"Due every {row['Frequency']} days")
                 with cols[1]:
+
+
+                    # Inside your Watering Loop...
                     if st.button("💧", key=f"w_{index}"):
                         st.session_state.water_expanded = True
                         
-                        # 1. Update main table
+                        # 1. Update the local Dataframe
                         df.at[index, 'Last Watered Date'] = today_str
-                        conn.update(data=df)
+                        df.at[index, 'Snooze Date'] = "" # Clear snooze
                         
-                        # 2. Append to History Safely
                         try:
-                            # Read existing history
-                            history_df = conn.read(worksheet="History", ttl=0)
-                            # Create new row
+                            # 2. Update Main Sheet
+                            conn.update(data=df)
+                            time.sleep(1)  # 👈 Gives Google a 1-second breather
+                            
+                            # 3. Log to History
+                            history_df = conn.read(worksheet="History", ttl="1m") # Use cache here
                             new_log = pd.DataFrame([{
                                 "Plant Name": row['Plant Name'], 
                                 "Date Watered": today_str, 
                                 "Acquisition Date": row['Acquisition Date']
                             }])
-                            # Combine and update
                             updated_history = pd.concat([history_df, new_log], ignore_index=True)
                             conn.update(worksheet="History", data=updated_history)
+                            
+                            st.rerun()
+                            
                         except Exception as e:
-                            st.error(f"Could not log history: {e}")
-                        
-                        st.rerun()
+                            st.error(f"Google is busy! Please wait a moment and try again. Error: {e}")
+        
                 with cols[2]:
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
