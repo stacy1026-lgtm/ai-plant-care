@@ -66,7 +66,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                 cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
                 with cols[0]:
                     st.markdown(f"**{row['Plant Name']}** — {row['Acquisition Date']}")
-                    st.markdown(f"{row['Last Watered Date']}")
+                    st.markdown(f"Last Watered on {row['Last Watered Date']}")
                     st.caption(f"Due every {row['Frequency']} days")
                 with cols[1]:
                     if st.button("💧", key=f"w_{index}"):
