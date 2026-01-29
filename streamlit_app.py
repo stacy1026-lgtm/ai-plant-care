@@ -11,7 +11,7 @@ if 'water_expanded' not in st.session_state:
 
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(ttl=0)
+df = conn.read(ttl=10)
 
 # Force types immediately after loading
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
