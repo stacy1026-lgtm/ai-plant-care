@@ -11,7 +11,11 @@ if 'water_expanded' not in st.session_state:
 
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(ttl=10)
+try:
+    df = conn.read(ttl="10s")
+except Exception as e:
+    st.error("🚦 Google is currently rate-limiting this app. Please refresh in 30 seconds.")
+    st.stop() # Stops the rest of the script from running and crashing
 
 # Force types immediately after loading
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
