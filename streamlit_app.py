@@ -69,43 +69,35 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                     st.markdown(f"Last Watered on {row['Last Watered Date']}")
                     st.caption(f"Due every {row['Frequency']} days")
                 with cols[1]:
-
-
-                    # Inside your Watering Loop...
                     if st.button("💧", key=f"w_{index}"):
                         st.session_state.water_expanded = True
                         
                         # 1. Update the local Dataframe
                         df.at[index, 'Last Watered Date'] = today_str
-                        df.at[index, 'Snooze Date'] = "" # Clear snooze
+                        df.at[index, 'Snooze Date'] = "" 
                         
                         try:
                             # 2. Update Main Sheet
                             conn.update(data=df)
-                            time.sleep(1)  # 👈 Gives Google a 1-second breather
                             
                             # 3. Log to History
-                            history_df = conn.read(worksheet="History", ttl="1m") # Use cache here
+                            time.sleep(1) # Breath for the API
+                            history_df = conn.read(worksheet="History", ttl="1m")
                             new_log = pd.DataFrame([{
                                 "Plant Name": row['Plant Name'], 
                                 "Date Watered": today_str, 
                                 "Acquisition Date": row['Acquisition Date']
                             }])
-                            updated_history = pd.concat([history_df, new_log], ignore_index=True)
-                            conn.update(worksheet="History", data=updated_history)
+                            conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
                             
+                            # 4. Success Toast
+                            st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
+                            
+                            time.sleep(0.5) # Let them see the toast for a split second
                             st.rerun()
                             
                         except Exception as e:
-                            st.error(f"Google is busy! Please wait a moment and try again. Error: {e}")
-        
-                with cols[2]:
-                    if st.button("😴", key=f"s_{index}"):
-                        st.session_state.water_expanded = True
-                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
-                        df.at[index, 'Snooze Date'] = reappear_date
-                        conn.update(data=df)
-                        st.rerun()
+                            st.error("Google is busy! Please wait a moment.")
     else:
         st.success("All plants are watered! ✨")
 
