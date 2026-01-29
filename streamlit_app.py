@@ -14,7 +14,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 try:
     df = conn.read(ttl="10s")
 except Exception as e:
-    st.error("🚦 Google is currently rate-limiting this app. Please refresh in 30 seconds.")
+    st.error("🚦 Whoa, slow down lady! Not even Google can keep up with you. Please refresh in 30 seconds.")
     st.stop() # Stops the rest of the script from running and crashing
 
 # Force types immediately after loading
@@ -101,7 +101,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.rerun()
                             
                         except Exception as e:
-                            st.error("Google is busy! Please wait a moment.")
+                            st.error("🚦 Whoa, slow down lady! Not even Google can keep up with you. Please refresh in 30 seconds.")
         
                 with cols[2]:
                     if st.button("😴", key=f"s_{index}"):
