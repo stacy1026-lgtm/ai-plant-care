@@ -98,6 +98,14 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             
                         except Exception as e:
                             st.error("Google is busy! Please wait a moment.")
+        
+                with cols[2]:
+                    if st.button("😴", key=f"s_{index}"):
+                        st.session_state.water_expanded = True
+                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                        df.at[index, 'Snooze Date'] = reappear_date
+                        conn.update(data=df)
+                        st.rerun()
     else:
         st.success("All plants are watered! ✨")
 
