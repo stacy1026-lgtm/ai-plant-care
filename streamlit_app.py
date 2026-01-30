@@ -6,7 +6,7 @@ import pandas as pd
 
 # --- CONFIG & CONNECTION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
-st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
+st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # --- 1. DATA LOADING ---
