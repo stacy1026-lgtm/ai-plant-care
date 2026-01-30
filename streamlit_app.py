@@ -1,4 +1,4 @@
-
+import time # Add this at the very top with your imports
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
@@ -10,7 +10,11 @@ if 'water_expanded' not in st.session_state:
 
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
-df = conn.read(ttl=0)
+try:
+    df = conn.read(ttl="10s")
+except Exception as e:
+    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 30 seconds.")
+    st.stop() # Stops the rest of the script from running and crashing
 
 # Force types immediately after loading
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
@@ -71,27 +75,33 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                     if st.button("💧", key=f"w_{index}"):
                         st.session_state.water_expanded = True
                         
-                        # 1. Update main table
+                        # 1. Update the local Dataframe
                         df.at[index, 'Last Watered Date'] = today_str
-                        conn.update(data=df)
+                        df.at[index, 'Snooze Date'] = "" 
                         
-                        # 2. Append to History Safely
                         try:
-                            # Read existing history
-                            history_df = conn.read(worksheet="History", ttl=0)
-                            # Create new row
+                            # 2. Update Main Sheet
+                            conn.update(data=df)
+                            
+                            # 3. Log to History
+                            time.sleep(1) # Breath for the API
+                            history_df = conn.read(worksheet="History", ttl="1m")
                             new_log = pd.DataFrame([{
                                 "Plant Name": row['Plant Name'], 
                                 "Date Watered": today_str, 
                                 "Acquisition Date": row['Acquisition Date']
                             }])
-                            # Combine and update
-                            updated_history = pd.concat([history_df, new_log], ignore_index=True)
-                            conn.update(worksheet="History", data=updated_history)
+                            conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
+                            
+                            # 4. Success Toast
+                            st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
+                            
+                            time.sleep(0.5) # Let them see the toast for a split second
+                            st.rerun()
+                            
                         except Exception as e:
-                            st.error(f"Could not log history: {e}")
-                        
-                        st.rerun()
+                            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 30 seconds.")
+        
                 with cols[2]:
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
