@@ -95,7 +95,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             conn.update(data=st.session_state.df)
                             
                             # 3. Log to History
-                            time.sleep(1) # Breath for the API
+                            time.sleep(2) # Breath for the API
                             history_df = conn.read(worksheet="History", ttl="0")
                             new_log = pd.DataFrame([{
                                 "Plant Name": row['Plant Name'], 
@@ -118,8 +118,20 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                         st.session_state.water_expanded = True
                         reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
                         st.session_state.df.at[index, 'Snooze Date'] = reappear_date
-                        conn.update(data=df)
-                        st.rerun()
+                        try:
+                            # 2. Push to Google using the session state data
+                            conn.update(data=st.session_state.df)
+            
+                            # 3. Give the API a tiny 'breath' before the rerun
+                            time.sleep(0.5) 
+                            st.rerun()
+            
+        except Exception as e:
+            # If Google blocks us, the change is still in local memory!
+            # We rerun anyway so the user sees the plant disappear.
+            st.warning("🚦 Google is busy, but I've saved your snooze locally.")
+            time.sleep(1)
+            st.rerun()
     else:
         st.success("All plants are watered! ✨")
 
