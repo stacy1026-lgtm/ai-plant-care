@@ -12,17 +12,18 @@ if 'water_expanded' not in st.session_state:
 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-try:
-# Only read from the API if we don't have the data in memory yet
-    if 'df' not in st.session_state:
-        try:
-            # We use ttl=0 here because Session State handles the "memory" now
-            st.session_state.df = conn.read(ttl=0) 
-except Exception as e:
-    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-    st.stop()
 
-# Use the data from memory for the rest of the script
+# 1. Check if we already have the data in memory (Session State)
+if 'df' not in st.session_state:
+    try:
+        # If not in memory, fetch it from Google once
+        st.session_state.df = conn.read(ttl=0) 
+    except Exception as e:
+        # If Google fails, show the error and stop
+        st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+        st.stop()
+
+# 2. Always set 'df' to the version in memory for the rest of the script
 df = st.session_state.df
 
 
