@@ -1,3 +1,4 @@
+
 import time # Add this at the very top with your imports
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
@@ -59,30 +60,56 @@ def needs_water(row):
     except:
         return True
 
-# Filter needs_action_df using the state
-needs_action_df = st.session_state.df[st.session_state.df.apply(needs_water, axis=1)].sort_values(by='Plant Name')
+#needs_action_df = df[df.apply(needs_water, axis=1
+needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')                           
 count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
 
-with st.expander(f"🚿 Plants to Water {count_label}", expanded=True):
+with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
     if not needs_action_df.empty:
         for index, row in needs_action_df.iterrows():
             with st.container(border=True):
                 cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
-                cols[0].markdown(f"**{row['Plant Name']}**")
-                cols[0].caption(f"Last: {row['Last Watered Date']} | Every {row['Frequency']} days")
-                
-                # WATER BUTTON
-                if cols[1].button("💧", key=f"w_{index}"):
-                    st.session_state.df.at[index, 'Last Watered Date'] = today_str
-                    st.session_state.df.at[index, 'Snooze Date'] = ""
-                    if save_to_google(st.session_state.df, success_msg="Watered!"):
-                        st.rerun()
-
-                # SNOOZE BUTTON
-                if cols[2].button("😴", key=f"s_{index}"):
-                    new_snooze = (today + timedelta(days=2)).strftime("%m/%d/%Y")
-                    st.session_state.df.at[index, 'Snooze Date'] = new_snooze
-                    if save_to_google(st.session_state.df, success_msg="Snoozed!"):
+                with cols[0]:
+                    st.markdown(f"**{row['Plant Name']}** — {row['Acquisition Date']}")
+                    st.markdown(f"Last Watered on {row['Last Watered Date']}")
+                    st.caption(f"Due every {row['Frequency']} days")
+                with cols[1]:
+                    if st.button("💧", key=f"w_{index}"):
+                        st.session_state.water_expanded = True
+                        
+                        # 1. Update the local Dataframe
+                        df.at[index, 'Last Watered Date'] = today_str
+                        df.at[index, 'Snooze Date'] = "" 
+                        
+                        try:
+                            # 2. Update Main Sheet
+                            conn.update(data=df)
+                            
+                            # 3. Log to History
+                            time.sleep(1) # Breath for the API
+                            history_df = conn.read(worksheet="History", ttl="1m")
+                            new_log = pd.DataFrame([{
+                                "Plant Name": row['Plant Name'], 
+                                "Date Watered": today_str, 
+                                "Acquisition Date": row['Acquisition Date']
+                            }])
+                            conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
+                            
+                            # 4. Success Toast
+                            st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
+                            
+                            time.sleep(0.5) # Let them see the toast for a split second
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+        
+                with cols[2]:
+                    if st.button("😴", key=f"s_{index}"):
+                        st.session_state.water_expanded = True
+                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                        df.at[index, 'Snooze Date'] = reappear_date
+                        conn.update(data=df)
                         st.rerun()
     else:
         st.success("All plants are watered! ✨")
