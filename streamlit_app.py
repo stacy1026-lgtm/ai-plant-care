@@ -12,11 +12,15 @@ if 'water_expanded' not in st.session_state:
 
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
-try:
-    df = conn.read(ttl="10s")
-except Exception as e:
-    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-    st.stop() # Stops the rest of the script from running and crashing
+if 'df' not in st.session_state:
+    try:
+        st.session_state.df = conn.read(ttl="10s")
+    except Exception as e:
+        st.error("🚦 Whoa, slow down! Please refresh in 1 minute.")
+        st.stop()
+
+# Use the data from session state instead of a local variable
+df = st.session_state.df
 
 # Force types immediately after loading
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
@@ -108,8 +112,12 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
                         reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
-                        df.at[index, 'Snooze Date'] = reappear_date
-                        conn.update(data=df)
+                        
+                        # Update the Session State directly
+                        st.session_state.df.at[index, 'Snooze Date'] = reappear_date
+                        
+                        # Write to Google and Rerun
+                        conn.update(data=st.session_state.df)
                         st.rerun()
     else:
         st.success("All plants are watered! ✨")
