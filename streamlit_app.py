@@ -87,16 +87,16 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                         st.session_state.water_expanded = True
                         
                         # 1. Update the local Dataframe
-                        df.at[index, 'Last Watered Date'] = today_str
-                        df.at[index, 'Snooze Date'] = "" 
+                        st.session_state.df.at[index, 'Last Watered Date'] = today_str
+                        st.session_state.df.at[index, 'Snooze Date'] = "" 
                         
                         try:
                             # 2. Update Main Sheet
-                            conn.update(data=df)
+                            conn.update(data=st.session_state.df)
                             
                             # 3. Log to History
                             time.sleep(1) # Breath for the API
-                            history_df = conn.read(worksheet="History", ttl="1m")
+                            history_df = conn.read(worksheet="History", ttl="0")
                             new_log = pd.DataFrame([{
                                 "Plant Name": row['Plant Name'], 
                                 "Date Watered": today_str, 
@@ -108,7 +108,6 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
                             
                             time.sleep(0.5) # Let them see the toast for a split second
-                            st.cache_data.clear()
                             st.rerun()
                             
                         except Exception as e:
@@ -118,9 +117,8 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
                         reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
-                        df.at[index, 'Snooze Date'] = reappear_date
+                        st.session_state.df.at[index, 'Snooze Date'] = reappear_date
                         conn.update(data=df)
-                        st.cache_data.clear()
                         st.rerun()
     else:
         st.success("All plants are watered! ✨")
