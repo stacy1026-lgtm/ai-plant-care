@@ -4,28 +4,17 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
-st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
-st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
 
-
+st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 conn = st.connection("gsheets", type=GSheetsConnection)
-
-# 1. Check if we already have the data in memory (Session State)
-if 'df' not in st.session_state:
-    try:
-        # If not in memory, fetch it from Google once
-        st.session_state.df = conn.read(ttl=0) 
-    except Exception as e:
-        # If Google fails, show the error and stop
-        st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-        st.stop()
-
-# 2. Always set 'df' to the version in memory for the rest of the script
-df = st.session_state.df
-
+try:
+    df = conn.read(ttl="10s")
+except Exception as e:
+    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+    st.stop() # Stops the rest of the script from running and crashing
 
 # Force types immediately after loading
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
@@ -87,16 +76,16 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                         st.session_state.water_expanded = True
                         
                         # 1. Update the local Dataframe
-                        st.session_state.df.at[index, 'Last Watered Date'] = today_str
-                        st.session_state.df.at[index, 'Snooze Date'] = "" 
+                        df.at[index, 'Last Watered Date'] = today_str
+                        df.at[index, 'Snooze Date'] = "" 
                         
                         try:
                             # 2. Update Main Sheet
-                            conn.update(data=st.session_state.df)
+                            conn.update(data=df)
                             
                             # 3. Log to History
-                            time.sleep(2) # Breath for the API
-                            history_df = conn.read(worksheet="History", ttl="0")
+                            time.sleep(1) # Breath for the API
+                            history_df = conn.read(worksheet="History", ttl="1m")
                             new_log = pd.DataFrame([{
                                 "Plant Name": row['Plant Name'], 
                                 "Date Watered": today_str, 
@@ -117,18 +106,9 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
                         reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
-                        st.session_state.df.at[index, 'Snooze Date'] = reappear_date
-                        try:
-                            # 2. Push to Google using the session state data
-                            conn.update(data=st.session_state.df)            
-                            # 3. Give the API a tiny 'breath' before the rerun
-                            time.sleep(0.5) 
-                            st.rerun()
-                        except Exception as e:
-                            # 3. If Google is busy, we still rerun so the plant vanishes locally
-                            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-                            time.sleep(1)
-                            st.rerun()            
+                        df.at[index, 'Snooze Date'] = reappear_date
+                        conn.update(data=df)
+                        st.rerun()
     else:
         st.success("All plants are watered! ✨")
 
