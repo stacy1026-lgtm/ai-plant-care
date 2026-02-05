@@ -12,7 +12,7 @@ if 'water_expanded' not in st.session_state:
 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-try:
+
 # Only read from the API if we don't have the data in memory yet
     if 'df' not in st.session_state:
         try:
