@@ -120,12 +120,13 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                         st.session_state.df.at[index, 'Snooze Date'] = reappear_date
                         try:
                             # 2. Push to Google using the session state data
-                            conn.update(data=st.session_state.df)
-            
+                            conn.update(data=st.session_state.df)            
                             # 3. Give the API a tiny 'breath' before the rerun
                             time.sleep(0.5) 
                             st.rerun()
-            
+                        except Exception as e:
+                            # 3. If Google is busy, we still rerun so the plant vanishes locally
+                            st.rerun()            
         except Exception as e:
             # If Google blocks us, the change is still in local memory!
             # We rerun anyway so the user sees the plant disappear.
