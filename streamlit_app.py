@@ -104,12 +104,10 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
-                    if st.button("😴", key=f"s_{index}"):
-                        st.session_state.water_expanded = True
-                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
-                        df.at[index, 'Snooze Date'] = reappear_date
-                        conn.update(data=df)
-                        st.rerun()
+                    if cols[2].button("😴", key=f"s_{index}"):
+                    st.session_state.df.at[index, 'Snooze Date'] = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                    if save_to_google(st.session_state.df, success_msg="Snoozed 2 days"):
+                        st.rerun() # <--- This removes it from the list immediately
     else:
         st.success("All plants are watered! ✨")
 
