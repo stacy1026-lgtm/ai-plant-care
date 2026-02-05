@@ -126,13 +126,9 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.rerun()
                         except Exception as e:
                             # 3. If Google is busy, we still rerun so the plant vanishes locally
+                            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+                            time.sleep(1)
                             st.rerun()            
-        except Exception as e:
-            # If Google blocks us, the change is still in local memory!
-            # We rerun anyway so the user sees the plant disappear.
-            st.warning("🚦 Google is busy, but I've saved your snooze locally.")
-            time.sleep(1)
-            st.rerun()
     else:
         st.success("All plants are watered! ✨")
 
