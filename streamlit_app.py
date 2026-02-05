@@ -13,10 +13,18 @@ if 'water_expanded' not in st.session_state:
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 try:
-    df = conn.read(ttl="10s")
-except Exception as e:
-    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-    st.stop() # Stops the rest of the script from running and crashing
+# Only read from the API if we don't have the data in memory yet
+    if 'df' not in st.session_state:
+        try:
+            # We use ttl=0 here because Session State handles the "memory" now
+            st.session_state.df = conn.read(ttl=0) 
+        except Exception as e:
+            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+            st.stop()
+
+# Use the data from memory for the rest of the script
+df = st.session_state.df
+
 
 # Force types immediately after loading
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
