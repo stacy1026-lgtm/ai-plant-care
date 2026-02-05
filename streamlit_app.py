@@ -6,10 +6,11 @@ import pandas as pd
 
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
+st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
 
-st.set_page_config(page_title="Plant Garden", page_icon="🪴")
+
 conn = st.connection("gsheets", type=GSheetsConnection)
 try:
     df = conn.read(ttl="10s")
@@ -98,6 +99,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
                             
                             time.sleep(0.5) # Let them see the toast for a split second
+                            st.cache_data.clear()
                             st.rerun()
                             
                         except Exception as e:
@@ -109,6 +111,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                         reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
                         df.at[index, 'Snooze Date'] = reappear_date
                         conn.update(data=df)
+                        st.cache_data.clear()
                         st.rerun()
     else:
         st.success("All plants are watered! ✨")
