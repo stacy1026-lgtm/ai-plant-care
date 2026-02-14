@@ -25,13 +25,18 @@ if 'df' not in st.session_state:
 df = st.session_state.df
 
 # Ensure columns exist BEFORE forcing types
-for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dismissed Gap', 'Acquisition Date']:
+required_cols = ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 
+                 'Dismissed Gap', 'Dismissed Count', 'Acquisition Date']
+
+for col in required_cols:
     if col not in df.columns:
-        df[col] = ""
+        # Use 0 for math-heavy columns, "" for text
+        df[col] = 0 if "Dismissed" in col or col == "Frequency" else ""
 
 # Force types
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
 df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7)
+df['Dismissed Count'] = pd.to_numeric(df['Dismissed Count'], errors='coerce').fillna(0).astype(int)
 # --- END PRIME LOGIC ---
 
 total_plants = len(df) if not df.empty else 0
@@ -287,9 +292,11 @@ if not df.empty:
                             idx = match.index[0]
                             current_f = int(match.iloc[0]['Frequency'])
                             d_gap = match.iloc[0].get('Dismissed Gap', None)
+                            d_count = match.iloc[0].get('Dismissed Count', 0)
+                            is_new_data = data_points >= (int(d_count) + 3)
         
                             # 3. Only show if suggestion is new
-                            if avg_gap != current_f and str(avg_gap) != str(d_gap) and std_dev < 2:
+                            if avg_gap != current_f and (str(avg_gap) != str(d_gap) or is_new_data) and std_dev < 2:
                                 with st.container(border=True):
                                     st.write(f"### {p_name}")
                                     
@@ -310,6 +317,7 @@ if not df.empty:
         
                                     if b_cols[1].button("✖️", key=f"dis_{idx}"):
                                         st.session_state.df.at[idx, 'Dismissed Gap'] = avg_gap
+                                        st.session_state.df.at[idx, 'Dismissed Count'] = data_points
                                         conn.update(data=st.session_state.df)
                                         st.rerun()
                 
