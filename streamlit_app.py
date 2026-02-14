@@ -116,7 +116,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                         label_visibility="collapsed" # Keeps the UI clean
                     )
                     
-                    if st.button(f"😴 {snooze_days}d", key=f"s_{index}"):
+                    if st.button(f"😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
                         
                         # 2. Use the selected number to calculate the date
