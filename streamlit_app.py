@@ -291,12 +291,12 @@ if not df.empty:
                         if not match.empty:
                             idx = match.index[0]
                             current_f = int(match.iloc[0]['Frequency'])
-                            d_gap = match.iloc[0].get('Dismissed Gap', None)
+                            d_gap = match.iloc[0].get('Dismissed Gap', 0)
                             d_count = match.iloc[0].get('Dismissed Count', 0)
                             is_new_data = data_points >= (int(d_count) + 3)
         
                             # 3. Only show if suggestion is new
-                            if avg_gap != current_f and (str(avg_gap) != str(d_gap) or is_new_data) and std_dev < 2:
+                            if avg_gap != current_f and is_new_data and std_dev < 2:
                                 with st.container(border=True):
                                     st.write(f"### {p_name}")
                                     
