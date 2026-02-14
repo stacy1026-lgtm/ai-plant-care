@@ -272,7 +272,7 @@ if not df.empty:
                             
                             # Buttons for Check/Dismiss would follow here...
                                     
-                                    b_cols = st.columns([0.15, 0.15, 0.7])
+                            b_cols = st.columns([0.15, 0.15, 0.7])
                                     if b_cols[0].button("✔️", key=f"up_{idx}"):
                                         df.at[idx, 'Frequency'] = avg_gap
                                         df.at[idx, 'Dismissed Gap'] = 0 
