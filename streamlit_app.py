@@ -289,7 +289,7 @@ if not df.empty:
                             d_gap = match.iloc[0].get('Dismissed Gap', None)
         
                             # 3. Only show if suggestion is new
-                            if avg_gap != current_f and str(avg_gap) != str(d_gap):
+                            if avg_gap != current_f and str(avg_gap) != str(d_gap) and std_dev < 2:
                                 with st.container(border=True):
                                     st.write(f"### {p_name}")
                                     
