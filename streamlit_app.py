@@ -244,27 +244,33 @@ if not df.empty:
                 
                 # Group by Name AND Acquisition Date to separate identical plants
                 for (p_name, p_acq), p_history in hist.groupby(['Plant Name', 'Acquisition Date']):
-                    p_dates = p_history['Date Watered'].sort_values()
-                    
-                    if len(p_dates) >= 3:
-                        avg_gap = int((p_dates.diff().mean()).days)
-                        
-                        # Find specific plant in main df
-                        match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
-                        
-                        if not match.empty:
-                            idx = match.index[0]
-                            current_f = int(match['Frequency'].values[0])
-                            # Handle dismissed gap
-                            d_val = match.get('Dismissed Gap', [0]).values[0]
-                            d_gap = int(d_val) if pd.notnull(d_val) else 0
+                            p_dates = p_history['Date Watered'].sort_values()
+                
+                            if len(p_dates) >= 3:
+                                # 1. Calculate the gaps and stats
+                                gaps = p_dates.diff().dt.days.dropna()
+                                avg_gap = int(gaps.mean())
+                                std_dev = gaps.std()
+                                data_points = len(p_dates)
+                
+                                # 2. Get the current frequency for comparison
+                                match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
+                                if not match.empty:
+                                    current_f = int(match.iloc[0]['Frequency'])
+                                    d_gap = match.iloc[0].get('Dismissed Gap', None)
+                
+                                    # 3. Only show if the data is new or changed
+                                    if avg_gap != current_f and str(avg_gap) != str(d_gap):
+                                        with st.container(border=True):
+                                            st.write(f"### {p_name}")
                             
-                            if avg_gap != current_f and avg_gap != d_gap:
-                                suggestions_found = True
-                                with st.container(border=True):
-                                    st.write(f"### {p_name}")
-                                    st.caption(f"ID: {p_acq}")
-                                    st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
+                            # Reliability Indicator
+                            reliability = "✅ Consistent" if std_dev < 2 else "⚠️ Variable"
+                            st.caption(f"Points: {data_points} | {reliability} (±{std_dev:.1f} days)")
+                            
+                            st.write(f"Average gap is **{avg_gap} days**. (Current: {current_f}d)")
+                            
+                            # Buttons for Check/Dismiss would follow here...
                                     
                                     b_cols = st.columns([0.15, 0.15, 0.7])
                                     if b_cols[0].button("✔️", key=f"up_{idx}"):
