@@ -106,30 +106,31 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
-                    # Create two tiny sub-columns inside the snooze column
-                    sub_c1, sub_c2 = st.columns([0.6, 0.4])
+                    # 1. The selector
+                    snooze_days = st.number_input(
+                        "Days", 
+                        min_value=1, 
+                        max_value=14, 
+                        value=2, 
+                        key=f"days_{index}",
+                        label_visibility="collapsed"
+                    )
                     
-                    with sub_c1:
-                        snooze_days = st.number_input(
-                            "Days", 
-                            min_value=1, value=2, 
-                            key=f"days_{index}",
-                            label_visibility="collapsed"
-                        )
-                    
-                    with sub_c2:
-                        if st.button("😴", key=f"s_{index}"):
-                            st.session_state.water_expanded = True
-                            reappear_date = (today + timedelta(days=snooze_days)).strftime("%m/%d/%Y")
+                    # 2. The button (Icon only)
+                    if st.button("😴", key=f"s_{index}"):
+                        st.session_state.water_expanded = True
+                        
+                        # Use the chosen number for the date calculation
+                        reappear_date = (today + timedelta(days=snooze_days)).strftime("%m/%d/%Y")
+                        
+                        st.session_state.df.at[index, 'Snooze Date'] = reappear_date
+                        
+                        try:
+                            conn.update(data=st.session_state.df)
+                        except:
+                            pass
                             
-                            st.session_state.df.at[index, 'Snooze Date'] = reappear_date
-                            
-                            try:
-                                conn.update(data=st.session_state.df)
-                            except:
-                                pass
-                                
-                            st.rerun()
+                        st.rerun()
     else:
         st.success("All plants are watered! ✨")
 
