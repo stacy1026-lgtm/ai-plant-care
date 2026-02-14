@@ -106,22 +106,11 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
-                    # 1. The selector
-                    snooze_days = st.number_input(
-                        "Days", 
-                        min_value=1, 
-                        max_value=14, 
-                        value=2, 
-                        key=f"days_{index}",
-                        label_visibility="collapsed"
-                    )
-                    
-                    # 2. The button (Icon only)
+                    # 1. The Button on top
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
-                        
-                        # Use the chosen number for the date calculation
-                        reappear_date = (today + timedelta(days=snooze_days)).strftime("%m/%d/%Y")
+                        # It will use the value currently in the number_input below
+                        reappear_date = (today + timedelta(days=st.session_state[f"days_{index}"])).strftime("%m/%d/%Y")
                         
                         st.session_state.df.at[index, 'Snooze Date'] = reappear_date
                         
@@ -129,8 +118,17 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             conn.update(data=st.session_state.df)
                         except:
                             pass
-                            
                         st.rerun()
+
+                    # 2. The Number Input below
+                    st.number_input(
+                        "Days", 
+                        min_value=1, 
+                        max_value=14, 
+                        value=2, 
+                        key=f"days_{index}",
+                        label_visibility="collapsed"
+                    )
     else:
         st.success("All plants are watered! ✨")
 
