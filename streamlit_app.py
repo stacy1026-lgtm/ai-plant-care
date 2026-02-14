@@ -1,31 +1,38 @@
-import time # Add this at the very top with your imports
+import time 
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-from datetime import date, timedelta, datetime  # Added datetime here
+from datetime import date, timedelta, datetime
 import pandas as pd
 
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
-# 1. Initialize Session State (at the very top)
+
+# 1. Initialize Session State
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
 
-
 conn = st.connection("gsheets", type=GSheetsConnection)
-try:
-    df = conn.read(ttl="10s")
-except Exception as e:
-    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-    st.stop() # Stops the rest of the script from running and crashing
 
-# Force types immediately after loading
-df['Last Watered Date'] = df['Last Watered Date'].astype(str)
-df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7)
+# --- START PRIME LOGIC ---
+if 'df' not in st.session_state:
+    try:
+        st.session_state.df = conn.read(ttl=0)
+    except Exception:
+        st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+        st.stop()
 
-# Ensure columns exist
-for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dismissed Gap']:
+# Local reference to session state
+df = st.session_state.df
+
+# Ensure columns exist BEFORE forcing types
+for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dismissed Gap', 'Acquisition Date']:
     if col not in df.columns:
         df[col] = ""
+
+# Force types
+df['Last Watered Date'] = df['Last Watered Date'].astype(str)
+df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7)
+# --- END PRIME LOGIC ---
 
 total_plants = len(df) if not df.empty else 0
 today = date.today()
