@@ -4,7 +4,7 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime
 import pandas as pd
 
-st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
+st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
