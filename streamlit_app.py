@@ -106,21 +106,24 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
-                    # 1. The Button on top
+                    # 1. The Button
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
-                        # It will use the value currently in the number_input below
-                        reappear_date = (today + timedelta(days=st.session_state[f"days_{index}"])).strftime("%m/%d/%Y")
                         
-                        st.session_state.df.at[index, 'Snooze Date'] = reappear_date
+                        # Use the key to get the days from the input below
+                        days_to_add = st.session_state.get(f"days_{index}", 2)
+                        reappear_date = (today + timedelta(days=days_to_add)).strftime("%m/%d/%Y")
+                        
+                        # Update the local 'df' (which is linked to session_state)
+                        df.at[index, 'Snooze Date'] = reappear_date
                         
                         try:
-                            conn.update(data=st.session_state.df)
+                            conn.update(data=df)
                         except:
                             pass
                         st.rerun()
 
-                    # 2. The Number Input below
+                    # 2. The Number Input
                     st.number_input(
                         "Days", 
                         min_value=1, 
