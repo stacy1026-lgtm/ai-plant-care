@@ -243,44 +243,48 @@ if not df.empty:
                 suggestions_found = False
                 
                 # Group by Name AND Acquisition Date to separate identical plants
+                # --- SMART ANALYSIS LOOP ---
                 for (p_name, p_acq), p_history in hist.groupby(['Plant Name', 'Acquisition Date']):
-                            p_dates = p_history['Date Watered'].sort_values()
-                
-                            if len(p_dates) >= 3:
-                                # 1. Calculate the gaps and stats
-                                gaps = p_dates.diff().dt.days.dropna()
-                                avg_gap = int(gaps.mean())
-                                std_dev = gaps.std()
-                                data_points = len(p_dates)
-                
-                                # 2. Get the current frequency for comparison
-                                match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
-                                if not match.empty:
-                                    current_f = int(match.iloc[0]['Frequency'])
-                                    d_gap = match.iloc[0].get('Dismissed Gap', None)
-                
-                                    # 3. Only show if the data is new or changed
-                                    if avg_gap != current_f and str(avg_gap) != str(d_gap):
-                                        with st.container(border=True):
-                                            st.write(f"### {p_name}")
-                            
-                            # Reliability Indicator
-                            reliability = "✅ Consistent" if std_dev < 2 else "⚠️ Variable"
-                            st.caption(f"Points: {data_points} | {reliability} (±{std_dev:.1f} days)")
-                            
-                            st.write(f"Average gap is **{avg_gap} days**. (Current: {current_f}d)")
-                            
-                            # Buttons for Check/Dismiss would follow here...
+                    p_dates = p_history['Date Watered'].sort_values()
+        
+                    if len(p_dates) >= 3:
+                        # 1. Calculate Stats
+                        gaps = p_dates.diff().dt.days.dropna()
+                        avg_gap = int(gaps.mean())
+                        std_dev = gaps.std()
+                        data_points = len(p_dates)
+        
+                        # 2. Match with Main Sheet
+                        match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
+                        
+                        if not match.empty:
+                            idx = match.index[0]
+                            current_f = int(match.iloc[0]['Frequency'])
+                            d_gap = match.iloc[0].get('Dismissed Gap', None)
+        
+                            # 3. Only show if suggestion is new
+                            if avg_gap != current_f and str(avg_gap) != str(d_gap):
+                                with st.container(border=True):
+                                    st.write(f"### {p_name}")
                                     
-                            b_cols = st.columns([0.15, 0.15, 0.7])
+                                    # Consistency Indicator
+                                    reliability = "✅ Consistent" if std_dev < 2 else "⚠️ Variable"
+                                    st.caption(f"Events: {data_points} | {reliability} (±{std_dev:.1f} days)")
+                                    st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
+        
+                                    # Buttons
+                                    b_cols = st.columns([0.15, 0.15, 0.7])
+                                    
                                     if b_cols[0].button("✔️", key=f"up_{idx}"):
-                                        df.at[idx, 'Frequency'] = avg_gap
-                                        df.at[idx, 'Dismissed Gap'] = 0 
-                                        conn.update(data=df)
+                                        st.session_state.df.at[idx, 'Frequency'] = avg_gap
+                                        conn.update(data=st.session_state.df)
+                                        st.toast(f"Updated {p_name} to {avg_gap} days!")
+                                        time.sleep(1)
                                         st.rerun()
-                                    if b_cols[1].button("✖️", key=f"no_{idx}"):
-                                        df.at[idx, 'Dismissed Gap'] = avg_gap
-                                        conn.update(data=df)
+        
+                                    if b_cols[1].button("✖️", key=f"dis_{idx}"):
+                                        st.session_state.df.at[idx, 'Dismissed Gap'] = avg_gap
+                                        conn.update(data=st.session_state.df)
                                         st.rerun()
                 
                 if not suggestions_found:
