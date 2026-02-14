@@ -1,7 +1,7 @@
-import time # Add this at the very top with your imports
+import time 
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-from datetime import date, timedelta, datetime  # Added datetime here
+from datetime import date, timedelta, datetime
 import pandas as pd
 
 # 1. Initialize Session State (at the very top)
@@ -9,22 +9,33 @@ st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
 
-
 conn = st.connection("gsheets", type=GSheetsConnection)
-try:
-    df = conn.read(ttl="10s")
-except Exception as e:
-    st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
-    st.stop() # Stops the rest of the script from running and crashing
 
-# Force types immediately after loading
+# --- START PRIME LOGIC ---
+if 'df' not in st.session_state:
+    try:
+        st.session_state.df = conn.read(ttl=0)
+    except Exception:
+        st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+        st.stop()
+
+# Local reference to session state
+df = st.session_state.df
+
+# Ensure columns exist BEFORE forcing types
+required_cols = ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 
+                 'Dismissed Gap', 'Dismissed Count', 'Acquisition Date']
+
+for col in required_cols:
+    if col not in df.columns:
+        # Use 0 for math-heavy columns, "" for text
+        df[col] = 0 if "Dismissed" in col or col == "Frequency" else ""
+
+# Force types
 df['Last Watered Date'] = df['Last Watered Date'].astype(str)
 df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7)
-
-# Ensure columns exist
-for col in ['Frequency', 'Snooze Date', 'Last Watered Date', 'Plant Name', 'Dismissed Gap']:
-    if col not in df.columns:
-        df[col] = ""
+df['Dismissed Count'] = pd.to_numeric(df['Dismissed Count'], errors='coerce').fillna(0).astype(int)
+# --- END PRIME LOGIC ---
 
 total_plants = len(df) if not df.empty else 0
 today = date.today()
@@ -105,13 +116,32 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
+                    # 1. The Button
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
-                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                        
+                        # Use the key to get the days from the input below
+                        days_to_add = st.session_state.get(f"days_{index}", 2)
+                        reappear_date = (today + timedelta(days=days_to_add)).strftime("%m/%d/%Y")
+                        
+                        # Update the local 'df' (which is linked to session_state)
                         df.at[index, 'Snooze Date'] = reappear_date
-                        conn.update(data=df)
-                        st.cache_data.clear()
+                        
+                        try:
+                            conn.update(data=df)
+                        except:
+                            pass
                         st.rerun()
+
+                    # 2. The Number Input
+                    st.number_input(
+                        "Days", 
+                        min_value=1, 
+                        max_value=14, 
+                        value=2, 
+                        key=f"days_{index}",
+                        label_visibility="collapsed"
+                    )
     else:
         st.success("All plants are watered! ✨")
 
@@ -242,38 +272,51 @@ if not df.empty:
                 suggestions_found = False
                 
                 # Group by Name AND Acquisition Date to separate identical plants
+                # --- SMART ANALYSIS LOOP ---
                 for (p_name, p_acq), p_history in hist.groupby(['Plant Name', 'Acquisition Date']):
                     p_dates = p_history['Date Watered'].sort_values()
-                    
+        
                     if len(p_dates) >= 3:
-                        avg_gap = int((p_dates.diff().mean()).days)
-                        
-                        # Find specific plant in main df
+                        # 1. Calculate Stats
+                        gaps = p_dates.diff().dt.days.dropna()
+                        avg_gap = int(gaps.mean())
+                        std_dev = gaps.std()
+                        data_points = len(p_dates)
+        
+                        # 2. Match with Main Sheet
                         match = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)]
                         
                         if not match.empty:
                             idx = match.index[0]
-                            current_f = int(match['Frequency'].values[0])
-                            # Handle dismissed gap
-                            d_val = match.get('Dismissed Gap', [0]).values[0]
-                            d_gap = int(d_val) if pd.notnull(d_val) else 0
-                            
-                            if avg_gap != current_f and avg_gap != d_gap:
-                                suggestions_found = True
+                            current_f = int(match.iloc[0]['Frequency'])
+                            d_gap = match.iloc[0].get('Dismissed Gap', 0)
+                            d_count = match.iloc[0].get('Dismissed Count', 0)
+                            is_new_data = data_points >= (int(d_count) + 3)
+        
+                            # 3. Only show if suggestion is new
+                            if avg_gap != current_f and is_new_data and std_dev < 2:
                                 with st.container(border=True):
                                     st.write(f"### {p_name}")
-                                    st.caption(f"ID: {p_acq}")
-                                    st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
                                     
+                                    # Consistency Indicator
+                                    reliability = "✅ Consistent" if std_dev < 2 else "⚠️ Variable"
+                                    st.caption(f"Events: {data_points} | {reliability} (±{std_dev:.1f} days)")
+                                    st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
+        
+                                    # Buttons
                                     b_cols = st.columns([0.15, 0.15, 0.7])
+                                    
                                     if b_cols[0].button("✔️", key=f"up_{idx}"):
-                                        df.at[idx, 'Frequency'] = avg_gap
-                                        df.at[idx, 'Dismissed Gap'] = 0 
-                                        conn.update(data=df)
+                                        st.session_state.df.at[idx, 'Frequency'] = avg_gap
+                                        conn.update(data=st.session_state.df)
+                                        st.toast(f"Updated {p_name} to {avg_gap} days!")
+                                        time.sleep(1)
                                         st.rerun()
-                                    if b_cols[1].button("✖️", key=f"no_{idx}"):
-                                        df.at[idx, 'Dismissed Gap'] = avg_gap
-                                        conn.update(data=df)
+        
+                                    if b_cols[1].button("✖️", key=f"dis_{idx}"):
+                                        st.session_state.df.at[idx, 'Dismissed Gap'] = avg_gap
+                                        st.session_state.df.at[idx, 'Dismissed Count'] = data_points
+                                        conn.update(data=st.session_state.df)
                                         st.rerun()
                 
                 if not suggestions_found:
