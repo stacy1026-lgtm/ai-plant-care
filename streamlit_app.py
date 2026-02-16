@@ -4,9 +4,6 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime
 import pandas as pd
 
-# Set page config
-
-st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
