@@ -3,7 +3,7 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime
 import pandas as pd
-
+st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # Set page config
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
