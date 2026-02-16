@@ -213,8 +213,10 @@ with st.expander("💀 Plant Cemetery (Remove a Plant)"):
         
 # 4. Processing & Display
 if not df.empty:
-    # Safely convert dates
-    df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
+    # Only convert to datetime if the column contains strings (avoids double-converting to NaT)
+    if df['Last Watered Date'].dtype == 'object':
+        df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
+
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
     df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
 
@@ -243,7 +245,7 @@ if not df.empty:
                 idx = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)].index[0]
                 
                 # Update and Log
-                df.at[idx, 'Last Watered Date'] = datetime.now().strftime("%m/%d/%Y")
+                df.at[idx, 'Last Watered Date'] = date.today() # Saves as a Date object, not a String
                 conn.update(data=df)
                 
                 # Log to History
