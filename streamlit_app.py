@@ -108,4 +108,85 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
         st.success("All plants are watered! ✨")
 
 # 2. ADD NEW PLANT
-with st.expander("
+with st.expander("➕ Add a New Plant"):
+    with st.form("new_plant_form", clear_on_submit=True):
+        new_name = st.text_input("Plant Name")
+        new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
+        new_acq = st.date_input("Acquisition Date", format="MM/DD/YYYY")
+        new_water = st.date_input("Last Watered Date", format="MM/DD/YYYY")
+        
+        if st.form_submit_button("Add to Collection"):
+            if new_name:
+                new_row = pd.DataFrame([{
+                    "Plant Name": new_name, 
+                    "Frequency": int(new_freq),
+                    "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
+                    "Last Watered Date": pd.Timestamp(new_water),
+                    "Snooze Date": "",
+                    "Dismissed Gap": 0,
+                    "Dismissed Count": 0
+                }])
+                st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+                conn.update(data=st.session_state.df)
+                st.rerun()
+
+# 3. PLANT CEMETERY (Safe Delete)
+with st.expander("💀 Plant Cemetery"):
+    if not df.empty:
+        selected_label = st.selectbox(
+            "Select the plant that didn't make it:",
+            options=df['Unique Label'].tolist(),
+            index=None,
+            placeholder="Type plant name..."
+        )
+        
+        if selected_label:
+            matches = df[df['Unique Label'] == selected_label]
+            if not matches.empty:
+                idx_to_remove = matches.index[0]
+                plant_name = df.at[idx_to_remove, 'Plant Name']
+                reason = st.text_input("Reason", placeholder="Optional")
+                
+                if st.button("Confirm Removal", type="primary"):
+                    # Remove immediately from state and update sheet
+                    st.session_state.df = st.session_state.df.drop(idx_to_remove)
+                    conn.update(data=st.session_state.df)
+                    st.success(f"{plant_name} moved to the cemetery.")
+                    st.rerun()
+
+# 4. FULL COLLECTION DISPLAY
+st.divider()
+with st.expander("📋 View Full Collection"):
+    if not df.empty:
+        # Quick Update Logic
+        st.write("### ⚡ Quick Update")
+        col1, col2 = st.columns([0.7, 0.3])
+        
+        # Safety match using Unique Label
+        all_options = df.sort_values(by='Plant Name')['Unique Label'].tolist()
+        selected_target = col1.selectbox("Mark as watered:", options=all_options, key="manual_water")
+        
+        if col2.button("💧 Water Now", use_container_width=True):
+            match = df[df['Unique Label'] == selected_target]
+            if not match.empty:
+                target_idx = match.index[0]
+                st.session_state.df.at[target_idx, 'Last Watered Date'] = pd.Timestamp(today)
+                conn.update(data=st.session_state.df)
+                st.rerun()
+
+        # Final UI Table
+        df_view = df.copy().sort_values(by='Plant Name')
+        
+        # Calculate Next Water
+        df_view['Next Water'] = df_view.apply(
+            lambda r: (r['Last Watered Date'] + timedelta(days=r['Frequency'])).strftime("%m/%d/%Y") 
+            if pd.notna(r['Last Watered Date']) else "Needs Date", axis=1
+        )
+        
+        # Format display dates
+        df_view['Last Watered Date'] = df_view['Last Watered Date'].dt.strftime("%m/%d/%Y").fillna("Never")
+
+        st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
+                     use_container_width=True, hide_index=True)
+    else:
+        st.info("Your garden is empty.")
