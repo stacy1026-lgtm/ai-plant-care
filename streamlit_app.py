@@ -33,8 +33,9 @@ for col in required_cols:
         df[col] = 0 if "Dismissed" in col or col == "Frequency" else ""
 
 # Force types
-df['Last Watered Date'] = df['Last Watered Date'].astype(str)
-df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7)
+# Convert to datetime objects immediately (errors become NaT, which we handle later)
+df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce')
+df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
 df['Dismissed Count'] = pd.to_numeric(df['Dismissed Count'], errors='coerce').fillna(0).astype(int)
 # --- END PRIME LOGIC ---
 
@@ -215,10 +216,6 @@ with st.expander("💀 Plant Cemetery (Remove a Plant)"):
         
 # 4. Processing & Display
 if not df.empty:
-    # Only convert to datetime if the column contains strings (avoids double-converting to NaT)
-    if df['Last Watered Date'].dtype == 'object':
-        df['Last Watered Date'] = pd.to_datetime(df['Last Watered Date'], errors='coerce').dt.date
-
     df['Frequency'] = pd.to_numeric(df['Frequency'], errors='coerce').fillna(7).astype(int)
     df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
 
@@ -247,8 +244,8 @@ if not df.empty:
                 idx = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)].index[0]
                 
                 # Update and Log
-                df.at[idx, 'Last Watered Date'] = date.today() # Saves as a Date object, not a String
-                conn.update(data=df)
+                st.session_state.df.at[idx, 'Last Watered Date'] = pd.Timestamp(date.today())
+                conn.update(data=st.session_state.df)
                 
                 # Log to History
                 history_df = conn.read(worksheet="History", ttl=0)
@@ -259,13 +256,20 @@ if not df.empty:
                 st.rerun()
     
         df_view = df.copy().sort_values(by='Plant Name')
-        #df_view = df.copy()
+        
+        # Calculate Next Water safely (Math happens here)
         df_view['Next Water'] = df_view.apply(
-            lambda r: r['Last Watered Date'] + timedelta(days=r['Frequency']) 
+            lambda r: (r['Last Watered Date'] + timedelta(days=r['Frequency'])).strftime("%m/%d/%Y") 
             if pd.notna(r['Last Watered Date']) else "Needs Date", axis=1
         )
+        
+        # Format the Last Watered column for the UI only (Pretty strings happen here)
+        df_view['Last Watered Date'] = df_view['Last Watered Date'].dt.strftime("%m/%d/%Y").fillna("Never")
+    
         st.dataframe(df_view[['Plant Name', 'Frequency', 'Last Watered Date', 'Next Water']], 
                      use_container_width=True, hide_index=True)
+
+    
 # 6. Smart Frequency Analysis
 
     with st.expander("📊 Smart Frequency Analysis", expanded=False):
