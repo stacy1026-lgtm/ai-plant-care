@@ -206,10 +206,10 @@ with st.expander("💀 Plant Cemetery (Remove a Plant)"):
                     st.info("Note: 'Graveyard' tab not found in Sheets, skipping the log.")
 
                 # 2. Remove from main table
-                #df = df.drop(idx_to_remove)
-                st.session_state.df = st.session_state.df.drop(idx_to_remove)
-                #conn.update(data=df)
-                conn.update(data=st.session_state.df)
+                df = df.drop(idx_to_remove)
+                #st.session_state.df = st.session_state.df.drop(idx_to_remove)
+                conn.update(data=df)
+                #conn.update(data=st.session_state.df)
                 st.success(f"{plant_name} moved to the cemetery.")
                 st.rerun()
         
