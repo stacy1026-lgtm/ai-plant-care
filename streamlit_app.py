@@ -101,16 +101,17 @@ def needs_water_tomorrow(row):
         # 2. Check Watering Frequency
         last_val = row.get('Last Watered Date')
         last_dt = pd.to_datetime(last_val, errors='coerce').date()
-        
-        if pd.isna(last_dt):
-            return True # Needs water if never watered
+        if pd.isna(last_dt): return False
             
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
         
+        if days_since >= frequency:
+            return False
+            
         return days_since >= (frequency-1)
     except:
-        return True
+        return False
 
 needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name') 
 tomorrow_df = df[df.apply(needs_water_tomorrow, axis=1)].sort_values(by='Plant Name') 
