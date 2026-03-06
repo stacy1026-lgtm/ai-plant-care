@@ -7,12 +7,14 @@ import pandas as pd
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
-test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
-#now_local = datetime.now(local_tz)
-now_local = test_time
+#Uncomment the line below and the display to show and test date and times
+#test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
+now_local = datetime.now(local_tz)
+#Uncomment the line below and the display to show and test date and times
+#now_local = test_time
 today_local = now_local.date()
 now_server = datetime.now() # Server defaults to UTC
-
+"""
 # 2. Display in two clean columns
 col_time1, col_time2 = st.columns(2)
 
@@ -25,7 +27,7 @@ with col_time2:
     st.caption(now_server.strftime("%A, %b %d"))
 
 st.divider()
-
+"""
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
