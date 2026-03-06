@@ -4,6 +4,7 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
+st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
@@ -55,7 +56,7 @@ def needs_water(row):
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
         
-        return days_since >= frequency
+        return days_since >= (frequency - 0.5)
     except:
         return True
 
