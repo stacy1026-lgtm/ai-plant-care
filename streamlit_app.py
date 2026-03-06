@@ -62,6 +62,16 @@ def needs_water(row):
     except:
         return True
 
+# DEFINE THIS EARLY
+def needs_water_tomorrow(row):
+    try:
+        last_dt = pd.to_datetime(row['Last Watered Date'], errors='coerce').date()
+        if pd.isna(last_dt): return False
+        due_date = last_dt + timedelta(days=int(row['Frequency']))
+        return due_date == (today_local + timedelta(days=1))
+    except: 
+        return False
+        
 # 1. Filter both datasets
 needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')
 tomorrow_df = df[df.apply(needs_water_tomorrow, axis=1)].sort_values(by='Plant Name')
