@@ -9,14 +9,14 @@ local_tz = pytz.timezone('US/Eastern')
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
-now_local = datetime.now(local_tz)
+today_local = datetime.now(local_tz)
 now_server = datetime.now() # Server defaults to UTC
 
 # 2. Display in two clean columns
 col_time1, col_time2 = st.columns(2)
 
 with col_time1:
-    st.metric("🏠 Your Local Time", now_local.strftime("%I:%M %p"))
+    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
     st.caption(now_local.strftime("%A, %b %d"))
 
 with col_time2:
@@ -130,7 +130,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                 with cols[2]:
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
-                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                        reappear_date = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
                         df.at[index, 'Snooze Date'] = reappear_date
                         conn.update(data=df)
                         st.cache_data.clear()
@@ -143,8 +143,8 @@ with st.expander("➕ Add a New Plant"):
     with st.form("new_plant_form", clear_on_submit=True):
         new_name = st.text_input("Plant Name")
         new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
-        new_acq = st.date_input("Acquisition Date", format="MM/DD/YYYY")
-        new_water = st.date_input("Last Watered Date", format="MM/DD/YYYY")
+        new_acq = st.date_input("Acquisition Date", value=today_local, format="MM/DD/YYYY")
+        new_water = st.date_input("Last Watered Date", value=today_local, format="MM/DD/YYYY")
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
@@ -235,7 +235,7 @@ if not df.empty:
                 idx = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)].index[0]
                 
                 # Update and Log
-                df.at[idx, 'Last Watered Date'] = datetime.now().strftime("%m/%d/%Y")
+                df.at[idx, 'Last Watered Date'] = datetime.now(local_tz).strftime("%m/%d/%Y")
                 conn.update(data=df)
                 
                 # Log to History
