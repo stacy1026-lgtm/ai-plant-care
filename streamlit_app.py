@@ -56,7 +56,7 @@ def needs_water(row):
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
         
-        return days_since >= (frequency - 1)
+        return days_since >= (frequency - .9)
     except:
         return True
 
