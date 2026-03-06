@@ -37,13 +37,13 @@ st.markdown(f"### Total Plants: **{total_plants}**")
 
 def needs_water(row):
     try:
-        today = datetime.now().date()
+        today_dt = date.today()
         
         # 1. Check Snooze Date first
         snooze_val = row.get('Snooze Date')
         if pd.notna(snooze_val) and snooze_val != "":
             snooze_dt = pd.to_datetime(snooze_val, errors='coerce').date()
-            if pd.notna(snooze_dt) and snooze_dt > today:
+            if pd.notna(snooze_dt) and snooze_dt > today_dt:
                 return False  # Hide if snoozed for the future
         
         # 2. Check Watering Frequency
@@ -54,9 +54,9 @@ def needs_water(row):
             return True # Needs water if never watered
             
         frequency = int(row['Frequency'])
-        days_since = (today - last_dt).days
+        days_since = (today_dt - last_dt).days
         
-        return days_since >= frequency
+        return days_since >= (frequency - 0.5)
     except:
         return True
 
