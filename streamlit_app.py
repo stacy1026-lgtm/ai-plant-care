@@ -194,7 +194,7 @@ with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})", expanded
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
-                    if st.button("😴", key=f"w_tom_{index}"):
+                    if st.button("😴", key=f"s_tom_{index}"):
                         st.session_state.tomorrow_expanded = True
                         reappear_date = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
                         df.at[index, 'Snooze Date'] = reappear_date
