@@ -7,7 +7,7 @@ import pandas as pd
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
-test_time = datetime(2026, 3, 6, 19, 0, tzinfo=local_tz)
+test_time = datetime(2026, 3, 7, 19, 0, tzinfo=local_tz)
 #now_local = datetime.now(local_tz)
 now_local = test_time
 today_local = now_local.date()
