@@ -134,23 +134,25 @@ with st.expander("➕ Add a New Plant"):
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
+                # 1. Format the new date as a string
+                acq_str = new_acq.strftime("%m/%d/%Y")
+                
+                # 2. Create the row WITH the Unique Label included
                 new_row = pd.DataFrame([{
                     "Plant Name": new_name, 
                     "Frequency": int(new_freq),
-                    "Acquisition Date": new_acq.strftime("%m/%d/%Y"), 
+                    "Acquisition Date": acq_str, 
                     "Last Watered Date": new_water.strftime("%m/%d/%Y"),
                     "Snooze Date": "",
-                    "Dismissed Gap": 0  # <--- Defaults to 0 in the database
+                    "Dismissed Gap": 0,
+                    "Unique Label": f"{new_name} ({acq_str})" # <--- ADDED THIS
                 }])
+                
+                # 3. Update and Rerun
                 df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=df)
-                # --- ADD THIS CLEANUP HERE ---
-                # 1. Fill blanks to prevent the TypeError crash
-                df['Plant Name'] = df['Plant Name'].fillna('Unknown')
-                df['Acquisition Date'] = df['Acquisition Date'].fillna('No Date')
-                
-                # 2. Create the Unique Label immediately
-                df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
+                st.success(f"Added {new_name}!")
+                time.sleep(1)
                 st.rerun()
                 
 # 3.5 Delete / RIP Plant
