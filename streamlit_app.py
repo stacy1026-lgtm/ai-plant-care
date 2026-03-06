@@ -1,13 +1,41 @@
 import time # Add this at the very top with your imports
 import streamlit as st
+import pytz
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
+# 1. Calculate both times
+local_tz = pytz.timezone('US/Eastern') 
+#Uncomment the line below and the display to show and test date and times
+#test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
+now_local = datetime.now(local_tz)
+#Uncomment the line below and the display to show and test date and times
+#now_local = test_time
+today_local = now_local.date()
+now_server = datetime.now() # Server defaults to UTC
+
+# 2. Display in two clean columns
+#col_time1, col_time2 = st.columns(2)
+
+#with col_time1:
+#    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
+#    st.caption(now_local.strftime("%A, %b %d"))
+
+#with col_time2:
+#    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
+#    st.caption(now_server.strftime("%A, %b %d"))
+
+#st.divider()
+
+st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
+
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
+if 'tomorrow_expanded' not in st.session_state:
+    st.session_state.tomorrow_expanded = False
 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -36,7 +64,7 @@ st.markdown(f"### Total Plants: **{total_plants}**")
 
 def needs_water(row):
     try:
-        today = datetime.now().date()
+        today = today_local
         
         # 1. Check Snooze Date first
         snooze_val = row.get('Snooze Date')
@@ -55,12 +83,38 @@ def needs_water(row):
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
         
-        return days_since >= frequency
+        return days_since >= (frequency)
     except:
         return True
 
-#needs_action_df = df[df.apply(needs_water, axis=1
-needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')                           
+def needs_water_tomorrow(row):
+    try:
+        today = today_local
+        
+        # 1. Check Snooze Date first
+        snooze_val = row.get('Snooze Date')
+        if pd.notna(snooze_val) and snooze_val != "":
+            snooze_dt = pd.to_datetime(snooze_val, errors='coerce').date()
+            if pd.notna(snooze_dt) and snooze_dt > today:
+                return False  # Hide if snoozed for the future
+        
+        # 2. Check Watering Frequency
+        last_val = row.get('Last Watered Date')
+        last_dt = pd.to_datetime(last_val, errors='coerce').date()
+        if pd.isna(last_dt): return False
+            
+        frequency = int(row['Frequency'])
+        days_since = (today - last_dt).days
+        
+        if days_since >= frequency:
+            return False
+            
+        return days_since >= (frequency-1)
+    except:
+        return False
+
+needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name') 
+tomorrow_df = df[df.apply(needs_water_tomorrow, axis=1)].sort_values(by='Plant Name') 
 count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
 
 with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
@@ -107,7 +161,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
                 with cols[2]:
                     if st.button("😴", key=f"s_{index}"):
                         st.session_state.water_expanded = True
-                        reappear_date = (today + timedelta(days=2)).strftime("%m/%d/%Y")
+                        reappear_date = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
                         df.at[index, 'Snooze Date'] = reappear_date
                         conn.update(data=df)
                         st.cache_data.clear()
@@ -115,13 +169,65 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
     else:
         st.success("All plants are watered! ✨")
 
+with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})", expanded=st.session_state.tomorrow_expanded):
+    if not tomorrow_df.empty:
+        for index, row in tomorrow_df.iterrows():
+            with st.container(border=True):
+                cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
+                with cols[0]:
+                    st.markdown(f"**{row['Plant Name']}** — {row['Acquisition Date']}")
+                    st.markdown(f"Last Watered on {row['Last Watered Date']}")
+                    st.caption(f"Due every {row['Frequency']} days")
+                with cols[1]:
+                    if st.button("💧", key=f"w_tom_{index}"):
+                        st.session_state.tomorrow_expanded = True
+                        
+                        # 1. Update the local Dataframe
+                        df.at[index, 'Last Watered Date'] = today_str
+                        df.at[index, 'Snooze Date'] = "" 
+                        
+                        try:
+                            # 2. Update Main Sheet
+                            conn.update(data=df)
+                            
+                            # 3. Log to History
+                            time.sleep(1) # Breath for the API
+                            history_df = conn.read(worksheet="History", ttl="1m")
+                            new_log = pd.DataFrame([{
+                                "Plant Name": row['Plant Name'], 
+                                "Date Watered": today_str, 
+                                "Acquisition Date": row['Acquisition Date']
+                            }])
+                            conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
+                            
+                            # 4. Success Toast
+                            st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
+                            
+                            time.sleep(0.5) # Let them see the toast for a split second
+                            st.cache_data.clear()
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+        
+                with cols[2]:
+                    if st.button("😴", key=f"s_tom_{index}"):
+                        st.session_state.tomorrow_expanded = True
+                        reappear_date = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
+                        df.at[index, 'Snooze Date'] = reappear_date
+                        conn.update(data=df)
+                        st.cache_data.clear()
+                        st.rerun()
+    else:
+        st.write("No plants due tomorrow!")
+
 # 3. Add New Plant
 with st.expander("➕ Add a New Plant"):
     with st.form("new_plant_form", clear_on_submit=True):
         new_name = st.text_input("Plant Name")
         new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
-        new_acq = st.date_input("Acquisition Date", format="MM/DD/YYYY")
-        new_water = st.date_input("Last Watered Date", format="MM/DD/YYYY")
+        new_acq = st.date_input("Acquisition Date", value=today_local, format="MM/DD/YYYY")
+        new_water = st.date_input("Last Watered Date", value=today_local, format="MM/DD/YYYY")
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
@@ -212,7 +318,7 @@ if not df.empty:
                 idx = df[(df['Plant Name'] == p_name) & (df['Acquisition Date'] == p_acq)].index[0]
                 
                 # Update and Log
-                df.at[idx, 'Last Watered Date'] = datetime.now().strftime("%m/%d/%Y")
+                df.at[idx, 'Last Watered Date'] = datetime.now(local_tz).strftime("%m/%d/%Y")
                 conn.update(data=df)
                 
                 # Log to History
