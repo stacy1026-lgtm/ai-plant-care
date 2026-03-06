@@ -5,6 +5,27 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
+# 1. Calculate both times
+local_tz = pytz.timezone('US/Eastern') 
+test_time = datetime(2026, 3, 7, 1, 0, tzinfo=local_tz)
+#now_local = datetime.now(local_tz)
+now_local = test_time
+today_local = now_local.date()
+now_server = datetime.now() # Server defaults to UTC
+
+# 2. Display in two clean columns
+col_time1, col_time2 = st.columns(2)
+
+with col_time1:
+    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
+    st.caption(now_local.strftime("%A, %b %d"))
+
+with col_time2:
+    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
+    st.caption(now_server.strftime("%A, %b %d"))
+
+st.divider()
+
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
@@ -62,51 +83,61 @@ def needs_water(row):
     except:
         return True
 
-# DEFINE THIS EARLY
-def needs_water_tomorrow(row):
-    try:
-        last_dt = pd.to_datetime(row['Last Watered Date'], errors='coerce').date()
-        if pd.isna(last_dt): return False
-        due_date = last_dt + timedelta(days=int(row['Frequency']))
-        return due_date == (today_local + timedelta(days=1))
-    except: 
-        return False
-        
-# 1. Filter both datasets
-needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')
-tomorrow_df = df[df.apply(needs_water_tomorrow, axis=1)].sort_values(by='Plant Name')
+#needs_action_df = df[df.apply(needs_water, axis=1
+needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name')                           
+count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
 
-# 2. Update the Expander Label
-count_label = f"({len(needs_action_df)} now / {len(tomorrow_df)} tomorrow)"
-
-with st.expander(f"🚿 Watering Schedule {count_label}", expanded=st.session_state.water_expanded):
-    
-    # 3. Use a helper function or loop to avoid repeating the button code
-    def render_plant_list(data_subset, key_prefix):
-        for index, row in data_subset.iterrows():
+with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_state.water_expanded):
+    if not needs_action_df.empty:
+        for index, row in needs_action_df.iterrows():
             with st.container(border=True):
                 cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
-                cols[0].markdown(f"**{row['Plant Name']}** — {row['Acquisition Date']}\n\nLast: {row['Last Watered Date']}")
-                
-                # WATER BUTTON
-                if cols[1].button("💧", key=f"w_{key_prefix}_{index}"):
-                    df.at[index, 'Last Watered Date'] = today_str
-                    df.at[index, 'Snooze Date'] = "" 
-                    conn.update(data=df)
-                    st.rerun()
-                
-                # SNOOZE BUTTON
-                if cols[2].button("😴", key=f"s_{key_prefix}_{index}"):
-                    df.at[index, 'Snooze Date'] = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
-                    conn.update(data=df)
-                    st.rerun()
-
-    # Render both lists
-    st.subheader("Due Now")
-    render_plant_list(needs_action_df, "now")
-    
-    st.subheader("Due Tomorrow")
-    render_plant_list(tomorrow_df, "tom")
+                with cols[0]:
+                    st.markdown(f"**{row['Plant Name']}** — {row['Acquisition Date']}")
+                    st.markdown(f"Last Watered on {row['Last Watered Date']}")
+                    st.caption(f"Due every {row['Frequency']} days")
+                with cols[1]:
+                    if st.button("💧", key=f"w_{index}"):
+                        st.session_state.water_expanded = True
+                        
+                        # 1. Update the local Dataframe
+                        df.at[index, 'Last Watered Date'] = today_str
+                        df.at[index, 'Snooze Date'] = "" 
+                        
+                        try:
+                            # 2. Update Main Sheet
+                            conn.update(data=df)
+                            
+                            # 3. Log to History
+                            time.sleep(1) # Breath for the API
+                            history_df = conn.read(worksheet="History", ttl="1m")
+                            new_log = pd.DataFrame([{
+                                "Plant Name": row['Plant Name'], 
+                                "Date Watered": today_str, 
+                                "Acquisition Date": row['Acquisition Date']
+                            }])
+                            conn.update(worksheet="History", data=pd.concat([history_df, new_log], ignore_index=True))
+                            
+                            # 4. Success Toast
+                            st.toast(f"Success! {row['Plant Name']} has been watered. 🌊", icon="🪴")
+                            
+                            time.sleep(0.5) # Let them see the toast for a split second
+                            st.cache_data.clear()
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
+        
+                with cols[2]:
+                    if st.button("😴", key=f"s_{index}"):
+                        st.session_state.water_expanded = True
+                        reappear_date = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
+                        df.at[index, 'Snooze Date'] = reappear_date
+                        conn.update(data=df)
+                        st.cache_data.clear()
+                        st.rerun()
+    else:
+        st.success("All plants are watered! ✨")
 
 # 3. Add New Plant
 with st.expander("➕ Add a New Plant"):
