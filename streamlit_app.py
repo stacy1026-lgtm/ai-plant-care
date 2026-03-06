@@ -32,6 +32,8 @@ st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
+if 'tomorrow_expanded' not in st.session_state:
+    st.session_state.tomorrow_expanded = False
 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -150,7 +152,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
     else:
         st.success("All plants are watered! ✨")
 
-with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})"):
+with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})"), expanded=st.session_state.water_expanded):
     if not tomorrow_df.empty:
         for index, row in tomorrow_df.iterrows():
             with st.container(border=True):
@@ -160,8 +162,8 @@ with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})"):
                     st.markdown(f"Last Watered on {row['Last Watered Date']}")
                     st.caption(f"Due every {row['Frequency']} days")
                 with cols[1]:
-                    if st.button("💧", key=f"w_{index}"):
-                        st.session_state.water_expanded = True
+                    if st.button("💧", key=f"w_tom_{index}"):
+                        st.session_state.tomorrow_expanded = True
                         
                         # 1. Update the local Dataframe
                         df.at[index, 'Last Watered Date'] = today_str
@@ -192,8 +194,8 @@ with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})"):
                             st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
         
                 with cols[2]:
-                    if st.button("😴", key=f"s_{index}"):
-                        st.session_state.water_expanded = True
+                    if st.button("😴", key=f"w_tom_{index}"):
+                        st.session_state.tomorrow_expanded = True
                         reappear_date = (today_local + timedelta(days=2)).strftime("%m/%d/%Y")
                         df.at[index, 'Snooze Date'] = reappear_date
                         conn.update(data=df)
