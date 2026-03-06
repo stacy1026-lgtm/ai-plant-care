@@ -152,7 +152,7 @@ with st.expander(f"🚿 Plants to Water {count_label}", expanded=st.session_stat
     else:
         st.success("All plants are watered! ✨")
 
-with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})"), expanded=st.session_state.water_expanded):
+with st.expander(f"🚿 Plants to Water Tomorrow ({len(tomorrow_df)})", expanded=st.session_state.tomorrow_expanded):
     if not tomorrow_df.empty:
         for index, row in tomorrow_df.iterrows():
             with st.container(border=True):
