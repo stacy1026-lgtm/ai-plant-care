@@ -5,11 +5,11 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
-local_tz = pytz.timezone('US/Eastern')
-
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
-now_local = datetime.now(local_tz)
+test_time = datetime(2026, 3, 6, 19, 0, tzinfo=local_tz)
+#now_local = datetime.now(local_tz)
+now_local = test_time
 today_local = now_local.date()
 now_server = datetime.now() # Server defaults to UTC
 
