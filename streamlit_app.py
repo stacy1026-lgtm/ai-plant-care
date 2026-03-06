@@ -87,14 +87,28 @@ def needs_water(row):
 
 def needs_water_tomorrow(row):
     try:
-        last_dt = pd.to_datetime(row['Last Watered Date'], errors='coerce').date()
-        if pd.isna(last_dt): return False
-        # Calculate when it is due
-        due_date = last_dt + timedelta(days=int(row['Frequency']))
-        # Check if due date is exactly 1 day after today
-        return due_date == (today_local + timedelta(days=1))
-    except: 
-        return False
+        today = today_local
+        
+        # 1. Check Snooze Date first
+        snooze_val = row.get('Snooze Date')
+        if pd.notna(snooze_val) and snooze_val != "":
+            snooze_dt = pd.to_datetime(snooze_val, errors='coerce').date()
+            if pd.notna(snooze_dt) and snooze_dt > today:
+                return False  # Hide if snoozed for the future
+        
+        # 2. Check Watering Frequency
+        last_val = row.get('Last Watered Date')
+        last_dt = pd.to_datetime(last_val, errors='coerce').date()
+        
+        if pd.isna(last_dt):
+            return True # Needs water if never watered
+            
+        frequency = int(row['Frequency'])
+        days_since = (today - last_dt).days
+        
+        return days_since >= (frequency-1)
+    except:
+        return True
 
 needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name') 
 tomorrow_df = df[df.apply(needs_water_tomorrow, axis=1)].sort_values(by='Plant Name') 
