@@ -60,7 +60,7 @@ st.markdown(f"### Total Plants: **{total_plants}**")
 
 def needs_water(row):
     try:
-        today = datetime.now().date()
+        today = today_local
         
         # 1. Check Snooze Date first
         snooze_val = row.get('Snooze Date')
@@ -78,6 +78,7 @@ def needs_water(row):
             
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
+        st.write(f"Testing: {row['Plant Name']} | Last: {last_dt} | Today: {today_local} | Diff: {(today_local - last_dt).days}")
         
         return days_since >= (frequency - .9)
     except:
