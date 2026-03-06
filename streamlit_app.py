@@ -7,16 +7,27 @@ import pandas as pd
 
 local_tz = pytz.timezone('US/Eastern')
 
+# 1. Calculate both times
+local_tz = pytz.timezone('US/Eastern') 
+now_local = datetime.now(local_tz)
+now_server = datetime.now() # Server defaults to UTC
+
+# 2. Display in two clean columns
+col_time1, col_time2 = st.columns(2)
+
+with col_time1:
+    st.metric("🏠 Your Local Time", now_local.strftime("%I:%M %p"))
+    st.caption(now_local.strftime("%A, %b %d"))
+
+with col_time2:
+    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
+    st.caption(now_server.strftime("%A, %b %d"))
+
+st.divider()
+
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
-
-# Create a nice string for the current time
-# Example: Friday, March 06, 2026 | 12:53 PM
-current_time_str = datetime.now(local_tz).strftime("%A, %B %d, %Y | %I:%M %p")
-
-st.info(f"📅 **Current Status:** {current_time_str}")
-st.markdown(f"### Total Plants: **{len(df)}**")
 
 if 'water_expanded' not in st.session_state:
     st.session_state.water_expanded = False
