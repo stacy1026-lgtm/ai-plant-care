@@ -13,7 +13,7 @@ if 'water_expanded' not in st.session_state:
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 try:
-    df = conn.read(ttl="10s")  
+    df = conn.read(ttl="10s")
 except Exception as e:
     st.error("🚦 Whoa, slow down lady! Not even Google works that fast. Please refresh in 1 minute.")
     st.stop() # Stops the rest of the script from running and crashing
