@@ -28,7 +28,7 @@ now_server = datetime.now() # Server defaults to UTC
 
 #st.divider()
 
-st.warning("⚠️ YOU ARE IN THE STAGING ENVIRONMENT")
+st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
