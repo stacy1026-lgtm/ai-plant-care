@@ -83,6 +83,17 @@ def needs_water(row):
     except:
         return True
 
+def needs_water_tomorrow(row):
+    try:
+        last_dt = pd.to_datetime(row['Last Watered Date'], errors='coerce').date()
+        if pd.isna(last_dt): return False
+        # Calculate when it is due
+        due_date = last_dt + timedelta(days=int(row['Frequency']))
+        # Check if due date is exactly 1 day after today
+        return due_date == (today_local + timedelta(days=1))
+    except: 
+        return False
+
 needs_action_df = df[df.apply(needs_water, axis=1)].sort_values(by='Plant Name') 
 tomorrow_df = df[df.apply(needs_water_tomorrow, axis=1)].sort_values(by='Plant Name') 
 count_label = f"({len(needs_action_df)})" if not needs_action_df.empty else ""
