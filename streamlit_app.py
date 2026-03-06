@@ -9,7 +9,8 @@ local_tz = pytz.timezone('US/Eastern')
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
-today_local = datetime.now(local_tz)
+now_local = datetime.now(local_tz)
+today_local = now_local.date()
 now_server = datetime.now() # Server defaults to UTC
 
 # 2. Display in two clean columns
