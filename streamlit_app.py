@@ -7,7 +7,7 @@ import pandas as pd
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
-test_time = datetime(2026, 3, 10, 19, 0, tzinfo=local_tz)
+test_time = datetime(2026, 3, 6, 19, 0, tzinfo=local_tz)
 #now_local = datetime.now(local_tz)
 now_local = test_time
 today_local = now_local.date()
@@ -78,9 +78,8 @@ def needs_water(row):
             
         frequency = int(row['Frequency'])
         days_since = (today - last_dt).days
-        st.write(f"Testing: {row['Plant Name']} | Last: {last_dt} | Today: {today_local} | Diff: {(today_local - last_dt).days}")
         
-        return days_since >= (frequency - .9)
+        return days_since >= (frequency)
     except:
         return True
 
