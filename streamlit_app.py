@@ -4,6 +4,15 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
+# Create a nice string for the current time
+# Example: Friday, March 06, 2026 | 12:53 PM
+current_time_str = datetime.now(local_tz).strftime("%A, %B %d, %Y | %I:%M %p")
+
+st.info(f"📅 **Current Status:** {current_time_str}")
+
+
+
+
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 if 'water_expanded' not in st.session_state:
