@@ -5,6 +5,8 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
+local_tz = pytz.timezone('US/Eastern')
+
 st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
