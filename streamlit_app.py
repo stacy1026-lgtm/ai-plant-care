@@ -144,6 +144,13 @@ with st.expander("➕ Add a New Plant"):
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=df)
+                # --- ADD THIS CLEANUP HERE ---
+                # 1. Fill blanks to prevent the TypeError crash
+                df['Plant Name'] = df['Plant Name'].fillna('Unknown')
+                df['Acquisition Date'] = df['Acquisition Date'].fillna('No Date')
+                
+                # 2. Create the Unique Label immediately
+                df['Unique Label'] = df['Plant Name'] + " (" + df['Acquisition Date'].astype(str) + ")"
                 st.rerun()
                 
 # 3.5 Delete / RIP Plant
