@@ -4,6 +4,11 @@ import pytz
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
+import subprocess
+import sys
+
+# Forces installation using the Python environment Streamlit is currently using
+subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase"])
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
