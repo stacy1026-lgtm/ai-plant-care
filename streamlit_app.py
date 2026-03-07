@@ -5,22 +5,6 @@ from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
 
-from supabase import create_client, Client
-
-# Initialize connection
-url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"
-supabase: Client = create_client(url, key)
-
-# Fetch data from your table
-response = supabase.table("plants").select("*").execute()
-
-# Convert to DataFrame
-df = pd.DataFrame(response.data)
-
-# Display in Streamlit
-st.subheader("My Database Table")
-st.dataframe(df)
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
