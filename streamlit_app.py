@@ -49,3 +49,20 @@ st.warning("⚠️ YOU ARE IN THE SUPABASE DEVELOPMENT ENVIRONMENT")
 # 1. Initialize Session State (at the very top)
 st.set_page_config(page_title="Supabase Plant Garden", page_icon="🪴")
 
+import streamlit as st
+
+# State to store login status
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+email = st.text_input("Email")
+password = st.text_input("Password", type="password")
+
+if st.button("Login"):
+    try:
+        user = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        st.session_state.user = user.user
+        st.success("Logged in!")
+    except Exception as e:
+        st.error(f"Login failed: {e}")
+
