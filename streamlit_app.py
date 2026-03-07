@@ -4,11 +4,24 @@ import pytz
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, timedelta, datetime  # Added datetime here
 import pandas as pd
-import subprocess
-import sys
 
-# Forces installation using the Python environment Streamlit is currently using
-subprocess.check_call([sys.executable, "-m", "pip", "install", "supabase"])
+import streamlit as st
+from supabase import create_client, Client
+
+# Initialize connection
+url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"
+supabase: Client = create_client(url, key)
+
+# Test connection
+if st.button("Test Database"):
+    try:
+        # Simple query to fetch one row
+        response = supabase.table("plants").select("*").limit(1).execute()
+        st.success("Connected to Supabase!")
+    except Exception as e:
+        st.error(f"Connection failed: {e}")
+        
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
