@@ -66,3 +66,16 @@ if st.button("Login"):
     except Exception as e:
         st.error(f"Login failed: {e}")
 
+# Registration logic
+email = st.text_input("New Email")
+password = st.text_input("New Password", type="password")
+
+if st.button("Create Account"):
+    try:
+        response = supabase.auth.sign_up({
+            "email": email, 
+            "password": password
+        })
+        st.success("Account created! Please check your email to confirm.")
+    except Exception as e:
+        st.error(f"Signup failed: {e}")
