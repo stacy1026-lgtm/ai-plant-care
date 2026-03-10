@@ -1,81 +1,85 @@
-import time # Add this at the very top with your imports
 import streamlit as st
-import pytz
-from streamlit_gsheets import GSheetsConnection
-from datetime import date, timedelta, datetime  # Added datetime here
-import pandas as pd
-
 from supabase import create_client, Client
 
-# Initialize connection
-url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"
+# 1. Setup Supabase Connection
+url = "YOUR_SUPABASE_URL"
+key = "YOUR_SUPABASE_ANON_KEY"
 supabase: Client = create_client(url, key)
 
-# Fetch data from your table
-response = supabase.table("plants").select("*").execute()
-
-# Convert to DataFrame
-df = pd.DataFrame(response.data)
-
-# Display in Streamlit
-st.subheader("My Database Table")
-st.dataframe(df)
-
-# 1. Calculate both times
-local_tz = pytz.timezone('US/Eastern') 
-#Uncomment the line below and the display to show and test date and times
-#test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
-now_local = datetime.now(local_tz)
-#Uncomment the line below and the display to show and test date and times
-#now_local = test_time
-today_local = now_local.date()
-now_server = datetime.now() # Server defaults to UTC
-
-# 2. Display in two clean columns
-#col_time1, col_time2 = st.columns(2)
-
-#with col_time1:
-#    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
-#    st.caption(now_local.strftime("%A, %b %d"))
-
-#with col_time2:
-#    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
-#    st.caption(now_server.strftime("%A, %b %d"))
-
-#st.divider()
-
-st.warning("⚠️ YOU ARE IN THE SUPABASE DEVELOPMENT ENVIRONMENT")
-# 1. Initialize Session State (at the very top)
-st.set_page_config(page_title="Supabase Plant Garden", page_icon="🪴")
-
-import streamlit as st
-
-# State to store login status
+# Initialize session state for the user
 if "user" not in st.session_state:
     st.session_state.user = None
 
-email = st.text_input("Email")
-password = st.text_input("Password", type="password")
+# --- AUTHENTICATION UI ---
+def auth_screen():
+    st.title("Plant Tracker 🌿")
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
-if st.button("Login"):
-    try:
-        user = supabase.auth.sign_in_with_password({"email": email, "password": password})
-        st.session_state.user = user.user
-        st.success("Logged in!")
-    except Exception as e:
-        st.error(f"Login failed: {e}")
+    with tab1:
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            if st.form_submit_button("Login"):
+                try:
+                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    st.session_state.user = res.user
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Login failed: {e}")
 
-# Registration logic
-email = st.text_input("New Email")
-password = st.text_input("New Password", type="password")
+    with tab2:
+        with st.form("signup_form"):
+            new_email = st.text_input("Email")
+            new_password = st.text_input("Password", type="password")
+            if st.form_submit_button("Create Account"):
+                try:
+                    # This triggers the SQL function we created earlier
+                    supabase.auth.sign_up({"email": new_email, "password": new_password})
+                    st.success("Signup successful! Check your email for confirmation (if enabled).")
+                except Exception as e:
+                    st.error(f"Signup failed: {e}")
 
-if st.button("Create Account"):
-    try:
-        response = supabase.auth.sign_up({
-            "email": email, 
-            "password": password
-        })
-        st.success("Account created! Please check your email to confirm.")
-    except Exception as e:
-        st.error(f"Signup failed: {e}")
+# --- MAIN DASHBOARD UI ---
+def dashboard():
+    user = st.session_state.user
+    st.sidebar.write(f"Logged in as: {user.email}")
+    if st.sidebar.button("Logout"):
+        st.session_state.user = None
+        st.rerun()
+
+    st.title("My Garden")
+
+    # Add New Plant Form
+    with st.expander("➕ Add New Plant"):
+        with st.form("add_plant"):
+            name = st.text_input("Plant Name")
+            freq = st.number_input("Watering Frequency (days)", min_value=1, value=7)
+            if st.form_submit_button("Save Plant"):
+                # Always include the user.id so RLS allows the insert
+                data = {"name": name, "frequency": freq, "user_id": user.id}
+                supabase.table("plants").insert(data).execute()
+                st.success(f"{name} added!")
+                st.rerun()
+
+    # Display User's Plants
+    st.subheader("Your Plants")
+    # Query is automatically filtered by RLS if enabled
+    response = supabase.table("plants").select("*").eq("user_id", user.id).execute()
+    
+    if response.data:
+        for plant in response.data:
+            col1, col2 = st.columns([3, 1])
+            col1.write(f"**{plant['name']}** (Every {plant['frequency']} days)")
+            if col2.button("Log Water", key=plant['id']):
+                # Add to plant_logs table
+                log_data = {"plant_id": plant['id'], "last_watered": "now()"}
+                supabase.table("plant_logs").insert(log_data).execute()
+                st.toast("Watering logged!")
+    else:
+        st.info("No plants found. Add one above!")
+
+# --- APP LOGIC ---
+if st.session_state.user is None:
+    auth_screen()
+else:
+    dashboard()
