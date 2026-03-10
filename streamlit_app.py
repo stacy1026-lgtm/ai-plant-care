@@ -2,8 +2,8 @@ import streamlit as st
 from supabase import create_client, Client
 
 # 1. Setup Supabase Connection
-url = "YOUR_SUPABASE_URL"
-key = "YOUR_SUPABASE_ANON_KEY"
+url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"
 supabase: Client = create_client(url, key)
 
 # Initialize session state for the user
