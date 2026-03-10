@@ -56,10 +56,13 @@ def dashboard():
             freq = st.number_input("Watering Frequency (days)", min_value=1, value=7)
             if st.form_submit_button("Save Plant"):
                 # Always include the user.id so RLS allows the insert
-                data = {"name": name, "frequency": freq, "user_id": user.id}
-                supabase.table("plants").insert(data).execute()
-                st.success(f"{name} added!")
-                st.rerun()
+                try:
+                    data = {"name": name, "frequency": freq, "user_id": user.id}
+                    supabase.table("plants").insert(data).execute()
+                    st.success(f"{name} added!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Database Error Details: {e}")
 
     # Display User's Plants
     st.subheader("Your Plants")
