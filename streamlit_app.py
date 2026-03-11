@@ -1,114 +1,56 @@
 import streamlit as st
 from supabase import create_client, Client
 
-def dashboard():
-    # Retrieve the session from storage
-    session = supabase.auth.get_session()
-    
-    # If the session is None, re-authenticate or force login
-    if not session:
-        st.error("Session expired. Please log in again.")
-        st.session_state.user = None
-        st.rerun()
+# Initialize connection
+url = "YOUR_SUPABASE_URL"
+key = "YOUR_SUPABASE_ANON_KEY"
 
-    # Now the insert will have the correct JWT (User ID) header
-    if st.button("Save Plant"):
-        data = {"name": name, "frequency": freq, "user_id": st.session_state.user.id}
-        supabase.table("plants").insert(data).execute()
+# Ensure client exists
+if "supabase" not in st.session_state:
+    st.session_state.supabase = create_client(url, key)
 
-# 1. Setup Supabase Connection
-url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"
-supabase: Client = create_client(url, key)
+# Helper for the authenticated client
+def get_client():
+    return st.session_state.supabase
 
-# Initialize session state for the user
+# Authentication Logic
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# --- AUTHENTICATION UI ---
-def auth_screen():
-    st.title("Plant Tracker 🌿")
+if st.session_state.user is None:
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
-
     with tab1:
-        with st.form("login_form"):
+        with st.form("login"):
             email = st.text_input("Email")
-            password = st.text_input("Password", type="password")
-            # --- INSIDE YOUR LOGIN FORM ---
+            pw = st.text_input("Password", type="password")
             if st.form_submit_button("Login"):
-                try:
-                    # 1. Sign in
-                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                    
-                    # 2. Store the user session globally
-                    st.session_state.user = res.user
-                    
-                    # 3. CRITICAL: Link the session to your supabase client
-                    supabase.auth.set_session(res.session.access_token, res.session.refresh_token)
-                    
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Login failed: {e}")
-
+                res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
+                st.session_state.user = res.user
+                st.session_state.supabase.auth.set_session(res.session.access_token, res.session.refresh_token)
+                st.rerun()
     with tab2:
-        with st.form("signup_form"):
-            new_email = st.text_input("Email")
-            new_password = st.text_input("Password", type="password")
-            if st.form_submit_button("Create Account"):
-                try:
-                    # This triggers the SQL function we created earlier
-                    supabase.auth.sign_up({"email": new_email, "password": new_password})
-                    st.success("Signup successful! Check your email for confirmation (if enabled).")
-                except Exception as e:
-                    st.error(f"Signup failed: {e}")
-
-# --- MAIN DASHBOARD UI ---
-def dashboard():
-    user = st.session_state.user
-    st.sidebar.write(f"Logged in as: {user.email}")
-    if st.sidebar.button("Logout"):
+        with st.form("signup"):
+            email = st.text_input("New Email")
+            pw = st.text_input("New Password", type="password")
+            if st.form_submit_button("Sign Up"):
+                get_client().auth.sign_up({"email": email, "password": pw})
+                st.success("Check email!")
+else:
+    # Dashboard Logic
+    st.write(f"Logged in: {st.session_state.user.email}")
+    if st.button("Logout"):
         st.session_state.user = None
         st.rerun()
 
-    st.title("My Garden")
+    with st.form("add_plant"):
+        name = st.text_input("Plant Name")
+        freq = st.number_input("Frequency", value=7)
+        if st.form_submit_button("Add"):
+            data = {"name": name, "frequency": freq, "user_id": st.session_state.user.id}
+            # This now uses the authenticated client
+            get_client().table("plants").insert(data).execute()
+            st.rerun()
 
-    # Add New Plant Form
-    with st.expander("➕ Add New Plant"):
-        with st.form("add_plant"):
-            name = st.text_input("Plant Name")
-            freq = st.number_input("Watering Frequency (days)", min_value=1, value=7)
-            if st.form_submit_button("Save Plant"):
-                # Always include the user.id so RLS allows the insert
-                try:
-                    data = {"name": name, "frequency": freq, "user_id": user.id}
-                    # Check if the client actually has a logged-in user context
-                    auth_user = supabase.auth.get_user()
-                    st.write("Current Auth User ID:", auth_user.user.id if auth_user.user else "NONE")
-                    supabase.table("plants").insert(data).execute()
-                    st.success(f"{name} added!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Database Error Details: {e}")
-
-    # Display User's Plants
-    st.subheader("Your Plants")
-    # Query is automatically filtered by RLS if enabled
-    response = supabase.table("plants").select("*").eq("user_id", user.id).execute()
-    
-    if response.data:
-        for plant in response.data:
-            col1, col2 = st.columns([3, 1])
-            col1.write(f"**{plant['name']}** (Every {plant['frequency']} days)")
-            if col2.button("Log Water", key=plant['id']):
-                # Add to plant_logs table
-                log_data = {"plant_id": plant['id'], "last_watered": "now()"}
-                supabase.table("plant_logs").insert(log_data).execute()
-                st.toast("Watering logged!")
-    else:
-        st.info("No plants found. Add one above!")
-
-# --- APP LOGIC ---
-if st.session_state.user is None:
-    auth_screen()
-else:
-    dashboard()
+    # Display
+    plants = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute()
+    st.write(plants.data)
