@@ -1,14 +1,24 @@
 import streamlit as st
 from supabase import create_client, Client
 
-try:
-    res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
-    # ... rest of code
-except Exception as e:
-    if hasattr(e, 'message'):
-        st.error(f"Supabase says: {e.message}")
-    else:
-        st.error(f"Error Details: {str(e)}")
+import streamlit as st
+import pandas as pd
+from supabase import create_client
+
+# 1. DEFINE THIS FIRST
+def get_client():
+    if "supabase" not in st.session_state:
+        st.session_state.supabase = create_client(st.secrets["url"], st.secrets["key"])
+    return st.session_state.supabase
+
+# 2. THEN USE IT
+if st.button("Test Connection"):
+    try:
+        # Now get_client() is already defined and available
+        client = get_client()
+        st.write("Connection works!")
+    except Exception as e:
+        st.error(f"Connection error: {e}")
 
 # Initialize connection
 url = "url"
