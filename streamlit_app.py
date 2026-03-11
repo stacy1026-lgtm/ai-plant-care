@@ -1,12 +1,14 @@
 import streamlit as st
 from supabase import create_client, Client
 
-# Temporary debug block
 try:
-    test_client = create_client(st.secrets["url"], st.secrets["key"])
-    st.write("Client successfully pinged Supabase!")
+    res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
+    # ... rest of code
 except Exception as e:
-    st.error(f"Initialization failed: {e}")
+    if hasattr(e, 'message'):
+        st.error(f"Supabase says: {e.message}")
+    else:
+        st.error(f"Error Details: {str(e)}")
 
 # Initialize connection
 url = "url"
