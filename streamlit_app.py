@@ -73,6 +73,15 @@ if st.session_state.user is None:
 
 # 3. Main Dashboard
 st.title("🪴 My Plant Garden")
+
+# Fetch raw data from Supabase
+raw_data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+
+# Calculate total count from the list directly
+total_plants = len(raw_data)
+
+# Create DataFrame for your UI/Display
+df = pd.DataFrame(raw_data)
 if st.sidebar.button("Logout"):
     st.session_state.user = None
     st.rerun()
@@ -105,7 +114,7 @@ with st.expander("➕ Add Plant"):
             st.rerun()
 
 # 6. Cemetery
-with st.expander("💀 Cemetery"):
+with st.expander("💀 Plant Cemetery"):
     if not df.empty:
         selection = st.selectbox("Select to remove:", df['name'])
         if st.button("Confirm Removal"):
