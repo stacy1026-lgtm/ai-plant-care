@@ -1,6 +1,13 @@
 import streamlit as st
 from supabase import create_client, Client
 
+st.write("Available secrets keys:", list(st.secrets.keys()))
+
+if "url" in st.secrets:
+    st.success("Secrets loaded successfully!")
+else:
+    st.error("Secrets file not found or empty!")
+
 # Initialize connection
 url = "url"
 key = "key"
