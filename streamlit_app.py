@@ -1,41 +1,19 @@
 import streamlit as st
-from supabase import create_client, Client
-
-import streamlit as st
 import pandas as pd
+from datetime import date
 from supabase import create_client
 
-# 1. DEFINE THIS FIRST
+# 1. DEFINE FUNCTION FIRST
 def get_client():
     if "supabase" not in st.session_state:
         st.session_state.supabase = create_client(st.secrets["url"], st.secrets["key"])
     return st.session_state.supabase
 
-# 2. THEN USE IT
-if st.button("Test Connection"):
-    try:
-        # Now get_client() is already defined and available
-        client = get_client()
-        st.write("Connection works!")
-    except Exception as e:
-        st.error(f"Connection error: {e}")
-
-# Initialize connection
-url = "url"
-key = "key"
-
-# Ensure client exists
-if "supabase" not in st.session_state:
-    st.session_state.supabase = create_client(url, key)
-
-# Helper for the authenticated client
-def get_client():
-    return st.session_state.supabase
-
-# Authentication Logic
+# 2. INITIALIZE SESSION STATE
 if "user" not in st.session_state:
     st.session_state.user = None
 
+# 3. AUTHENTICATION UI
 if st.session_state.user is None:
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
     with tab1:
@@ -43,33 +21,25 @@ if st.session_state.user is None:
             email = st.text_input("Email")
             pw = st.text_input("Password", type="password")
             if st.form_submit_button("Login"):
-                res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
-                st.session_state.user = res.user
-                st.session_state.supabase.auth.set_session(res.session.access_token, res.session.refresh_token)
-                st.rerun()
-    with tab2:
-        with st.form("signup"):
-            email = st.text_input("New Email")
-            pw = st.text_input("New Password", type="password")
-            if st.form_submit_button("Sign Up"):
-                get_client().auth.sign_up({"email": email, "password": pw})
-                st.success("Check email!")
-else:
-    # Dashboard Logic
-    st.write(f"Logged in: {st.session_state.user.email}")
-    if st.button("Logout"):
-        st.session_state.user = None
-        st.rerun()
+                try:
+                    res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
+                    st.session_state.user = res.user
+                    get_client().auth.set_session(res.session.access_token, res.session.refresh_token)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Login failed: {e}")
+    st.stop() # Stop here if not logged in
 
-    with st.form("add_plant"):
-        name = st.text_input("Plant Name")
-        freq = st.number_input("Frequency", value=7)
-        if st.form_submit_button("Add"):
-            data = {"name": name, "frequency": freq, "user_id": st.session_state.user.id}
-            # This now uses the authenticated client
-            get_client().table("plants").insert(data).execute()
-            st.rerun()
+# 4. DASHBOARD (Only runs if logged in)
+st.title("🪴 My Plant Garden")
+if st.button("Logout"):
+    st.session_state.user = None
+    st.rerun()
 
-    # Display
-    plants = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute()
-    st.write(plants.data)
+# Fetch and display data
+def load_data():
+    data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+    return pd.DataFrame(data)
+
+df = load_data()
+st.write(df)
