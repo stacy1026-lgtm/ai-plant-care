@@ -2,15 +2,19 @@ import streamlit as st
 from supabase import create_client, Client
 
 def dashboard():
-    user = st.session_state.user
-    
-    # IMPORTANT: Ensure the client is using the logged-in user's JWT
-    # This "authenticates" the connection so RLS knows who you are
+    # Retrieve the session from storage
     session = supabase.auth.get_session()
     
-    st.sidebar.write(f"Logged in as: {user.email}")
-    
-    # ... rest of your code ...
+    # If the session is None, re-authenticate or force login
+    if not session:
+        st.error("Session expired. Please log in again.")
+        st.session_state.user = None
+        st.rerun()
+
+    # Now the insert will have the correct JWT (User ID) header
+    if st.button("Save Plant"):
+        data = {"name": name, "frequency": freq, "user_id": st.session_state.user.id}
+        supabase.table("plants").insert(data).execute()
 
 # 1. Setup Supabase Connection
 url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
