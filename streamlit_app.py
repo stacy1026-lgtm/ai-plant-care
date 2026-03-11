@@ -5,8 +5,8 @@ from supabase import create_client
 
 # 1. Configuration
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
-URL = st.secrets["https://eeqdkamaxghssoxxqsxi.supabase.co"]
-KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"]
+URL = st.secrets["url"]
+KEY = st.secrets["key"]
 
 # 2. Auth & Client Initialization
 if "supabase" not in st.session_state:
