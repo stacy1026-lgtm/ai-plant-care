@@ -69,6 +69,9 @@ def dashboard():
                 # Always include the user.id so RLS allows the insert
                 try:
                     data = {"name": name, "frequency": freq, "user_id": user.id}
+                    # Check if the client actually has a logged-in user context
+                    auth_user = supabase.auth.get_user()
+                    st.write("Current Auth User ID:", auth_user.user.id if auth_user.user else "NONE")
                     supabase.table("plants").insert(data).execute()
                     st.success(f"{name} added!")
                     st.rerun()
