@@ -34,10 +34,18 @@ def auth_screen():
         with st.form("login_form"):
             email = st.text_input("Email")
             password = st.text_input("Password", type="password")
+            # --- INSIDE YOUR LOGIN FORM ---
             if st.form_submit_button("Login"):
                 try:
+                    # 1. Sign in
                     res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    
+                    # 2. Store the user session globally
                     st.session_state.user = res.user
+                    
+                    # 3. CRITICAL: Link the session to your supabase client
+                    supabase.auth.set_session(res.session.access_token, res.session.refresh_token)
+                    
                     st.rerun()
                 except Exception as e:
                     st.error(f"Login failed: {e}")
