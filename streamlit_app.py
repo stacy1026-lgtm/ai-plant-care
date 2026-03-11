@@ -1,12 +1,12 @@
 import streamlit as st
 from supabase import create_client, Client
 
-st.write("Available secrets keys:", list(st.secrets.keys()))
-
-if "url" in st.secrets:
-    st.success("Secrets loaded successfully!")
-else:
-    st.error("Secrets file not found or empty!")
+# Temporary debug block
+try:
+    test_client = create_client(st.secrets["url"], st.secrets["key"])
+    st.write("Client successfully pinged Supabase!")
+except Exception as e:
+    st.error(f"Initialization failed: {e}")
 
 # Initialize connection
 url = "url"
