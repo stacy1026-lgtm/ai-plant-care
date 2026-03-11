@@ -80,7 +80,7 @@ total_plants = len(raw_data)
 df = pd.DataFrame(raw_data)
 
 # 2. ADD THESE TO DISPLAY
-st.metric("Total Plants", total_plants)
+st.markdown(f"### Total Plants: **{total_plants}**")
 
 if not df.empty:
     st.dataframe(df)
