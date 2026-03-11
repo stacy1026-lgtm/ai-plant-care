@@ -74,17 +74,18 @@ if st.session_state.user is None:
 # 3. Main Dashboard
 st.title("🪴 My Plant Garden")
 
-# Fetch raw data from Supabase
+# 1. Fetch raw data
 raw_data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-
-# Calculate total count from the list directly
 total_plants = len(raw_data)
-
-# Create DataFrame for your UI/Display
 df = pd.DataFrame(raw_data)
-if st.sidebar.button("Logout"):
-    st.session_state.user = None
-    st.rerun()
+
+# 2. ADD THESE TO DISPLAY
+st.metric("Total Plants", total_plants)
+
+if not df.empty:
+    st.dataframe(df)
+else:
+    st.write("Your garden is empty!")
 
 # Helper: Fetch Data
 def load_data():
