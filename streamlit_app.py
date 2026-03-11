@@ -1,6 +1,17 @@
 import streamlit as st
 from supabase import create_client, Client
 
+def dashboard():
+    user = st.session_state.user
+    
+    # IMPORTANT: Ensure the client is using the logged-in user's JWT
+    # This "authenticates" the connection so RLS knows who you are
+    session = supabase.auth.get_session()
+    
+    st.sidebar.write(f"Logged in as: {user.email}")
+    
+    # ... rest of your code ...
+
 # 1. Setup Supabase Connection
 url = "https://eeqdkamaxghssoxxqsxi.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcWRrYW1heGdoc3NveHhxc3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDU1OTksImV4cCI6MjA4ODQ4MTU5OX0.aKi31CJeb_G9fRzkzjfNAgtcehBzoy5w2CgFdjSQRQM"
