@@ -62,16 +62,54 @@ def load_data():
 
 df = load_data()
 
+def load_data():
+    today = str(date.today())
+    # Fetch all plants for the user
+    res = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+    all_plants = pd.DataFrame(res)
+    
+    if all_plants.empty:
+        return all_plants
+
+    # Filter out plants snoozed for the future
+    # We use .fillna('') to handle rows where snooze_until is NULL
+    is_not_snoozed = (all_plants['snooze_until'].isna()) | (all_plants['snooze_until'] <= today)
+    return all_plants[is_not_snoozed]
+
+df = load_data()
+
 # 4. Watering Logic
-with st.expander("🚿 Plants to Water"):
+with st.expander("🚿 Plants to Water", expanded=True):
     if not df.empty:
         for idx, row in df.iterrows():
-            cols = st.columns([2, 1])
+            # Balanced columns for Name, Water, and Snooze
+            cols = st.columns([2, 1, 1])
+            
             cols[0].write(f"**{row['name']}**")
+            
+            # WATER BUTTON
             if cols[1].button("💧 Water", key=f"w_{row['id']}"):
-                get_client().table("plants").update({"last_watered": str(date.today())}).eq("id", row['id']).execute()
-                get_client().table("plant_logs").insert({"plant_id": row['id'], "user_id": st.session_state.user.id}).execute()
+                get_client().table("plants").update({
+                    "last_watered": str(date.today()),
+                    "snooze_until": None  # Reset snooze when watered
+                }).eq("id", row['id']).execute()
+                
+                get_client().table("plant_logs").insert({
+                    "plant_id": row['id'], 
+                    "user_id": st.session_state.user.id
+                }).execute()
                 st.rerun()
+            
+            # SNOOZE BUTTON (Hides plant for 2 days)
+            if cols[2].button("😴 Snooze", key=f"s_{row['id']}"):
+                snooze_date = str(date.today() + timedelta(days=2))
+                get_client().table("plants").update({
+                    "snooze_until": snooze_date
+                }).eq("id", row['id']).execute()
+                st.toast(f"{row['name']} snoozed until {snooze_date}")
+                st.rerun()
+    else:
+        st.write("All caught up! No plants need water right now.")
 
 # 5. Add Plant
 with st.expander("➕ Add Plant"):
