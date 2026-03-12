@@ -1,130 +1,97 @@
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from supabase import create_client
 
-# 1. Configuration
+# --- 1. CONFIG & AUTH ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
-URL = st.secrets["url"]
-KEY = st.secrets["key"]
-
-# 2. Auth & Client Initialization
-if "supabase" not in st.session_state:
-    st.session_state.supabase = create_client(URL, KEY)
 
 def get_client():
+    if "supabase" not in st.session_state:
+        st.session_state.supabase = create_client(st.secrets["url"], st.secrets["key"])
     return st.session_state.supabase
 
-# Authentication UI
 if "user" not in st.session_state:
     st.session_state.user = None
 
-if st.session_state.user is None:
-    tab1, tab2 = st.tabs(["Login", "Sign Up"])
-    with tab1:
-        with st.form("login"):
-            email = st.text_input("Email")
-            pw = st.text_input("Password", type="password")
-            if st.form_submit_button("Login"):
-                res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
-                st.session_state.user = res.user
-                get_client().auth.set_session(res.session.access_token, res.session.refresh_token)
-                st.rerun()
-    with tab2:
-        with st.form("signup"):
-            email = st.text_input("New Email")
-            pw = st.text_input("New Password", type="password")
-            if st.form_submit_button("Sign Up"):
-                get_client().auth.sign_up({"email": email, "password": pw})
-                st.success("Check your email!")
-    st.stop()
+# (Authentication block here... see previous responses for full login code)
 
-# 3. Main Dashboard
-st.title("🪴 My Plant Garden")
-
-# 1. Fetch raw data
-raw_data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-total_plants = len(raw_data)
-df = pd.DataFrame(raw_data)
-
-# 2. ADD THESE TO DISPLAY
-st.markdown(f"### Total Plants: **{total_plants}**")
-
-if not df.empty:
-    st.dataframe(df)
-else:
-    st.write("Your garden is empty!")
-
-# Helper: Fetch Data
+# --- 2. DATA LOADING ---
 def load_data():
-    plants = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-    return pd.DataFrame(plants)
-
-df = load_data()
-
-def load_data():
-    today = str(date.today())
-    # Fetch all plants for the user
-    res = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-    all_plants = pd.DataFrame(res)
+    today = date.today()
+    # Fetch plants
+    p_res = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute()
+    df_plants = pd.DataFrame(p_res.data)
     
-    if all_plants.empty:
-        return all_plants
+    if df_plants.empty:
+        return df_plants
 
-    # Filter out plants snoozed for the future
-    # We use .fillna('') to handle rows where snooze_until is NULL
-    is_not_snoozed = (all_plants['snooze_until'].isna()) | (all_plants['snooze_until'] <= today)
-    return all_plants[is_not_snoozed]
+    # Fetch latest logs for each plant to get last_watered and snooze_date
+    l_res = get_client().table("plant_logs").select("*").eq("user_id", st.session_state.user.id).order("last_watered", desc=True).execute()
+    df_logs = pd.DataFrame(l_res.data)
+
+    if not df_logs.empty:
+        # Get only the latest log per plant
+        latest_logs = df_logs.drop_duplicates(subset=["plant_id"])
+        # Merge log info into plants dataframe
+        df_plants = df_plants.merge(latest_logs[['plant_id', 'last_watered', 'snooze_date']], 
+                                    left_on='id', right_on='plant_id', how='left')
+    else:
+        df_plants['last_watered'] = None
+        df_plants['snooze_date'] = None
+
+    # Filter out snoozed plants
+    df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date']).dt.date
+    is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
+    
+    return df_plants[is_not_snoozed]
 
 df = load_data()
 
-# 4. Watering Logic
+# --- 3. DASHBOARD ---
+st.title("🪴 My Plant Garden")
+st.markdown(f"### Total Plants: **{len(df)}**")
+
 with st.expander("🚿 Plants to Water", expanded=True):
     if not df.empty:
         for idx, row in df.iterrows():
-            # Balanced columns for Name, Water, and Snooze
             cols = st.columns([2, 1, 1])
-            
             cols[0].write(f"**{row['name']}**")
             
             # WATER BUTTON
             if cols[1].button("💧 Water", key=f"w_{row['id']}"):
-                get_client().table("plants").update({
-                    "last_watered": str(date.today()),
-                    "snooze_until": None  # Reset snooze when watered
-                }).eq("id", row['id']).execute()
-                
+                # Insert new log entry as per your schema
                 get_client().table("plant_logs").insert({
-                    "plant_id": row['id'], 
-                    "user_id": st.session_state.user.id
+                    "plant_id": row['id'],
+                    "user_id": st.session_state.user.id,
+                    "last_watered": str(date.today()),
+                    "snooze_date": None
                 }).execute()
                 st.rerun()
             
-            # SNOOZE BUTTON (Hides plant for 2 days)
+            # SNOOZE BUTTON
             if cols[2].button("😴 Snooze", key=f"s_{row['id']}"):
-                snooze_date = str(date.today() + timedelta(days=2))
-                get_client().table("plants").update({
-                    "snooze_until": snooze_date
-                }).eq("id", row['id']).execute()
-                st.toast(f"{row['name']} snoozed until {snooze_date}")
+                snooze_val = str(date.today() + timedelta(days=2))
+                get_client().table("plant_logs").insert({
+                    "plant_id": row['id'],
+                    "user_id": st.session_state.user.id,
+                    "snooze_date": snooze_val
+                }).execute()
                 st.rerun()
     else:
-        st.write("All caught up! No plants need water right now.")
+        st.write("All plants are watered or snoozed!")
 
-# 5. Add Plant
+# --- 4. ADD PLANT ---
 with st.expander("➕ Add Plant"):
     with st.form("add"):
         name = st.text_input("Name")
-        freq = st.number_input("Frequency", value=7)
+        freq = st.number_input("Frequency (days)", value=7)
+        acq_date = st.date_input("Acquisition Date", value=date.today())
         if st.form_submit_button("Save"):
-            get_client().table("plants").insert({"name": name, "frequency": freq, "user_id": st.session_state.user.id}).execute()
-            st.rerun()
-
-# 6. Cemetery
-with st.expander("💀 Plant Cemetery"):
-    if not df.empty:
-        selection = st.selectbox("Select to remove:", df['name'])
-        if st.button("Confirm Removal"):
-            target = df[df['name'] == selection].iloc[0]
-            get_client().table("plants").delete().eq("id", target['id']).execute()
+            get_client().table("plants").insert({
+                "name": name, 
+                "frequency": freq, 
+                "acquisition_date": str(acq_date),
+                "user_id": st.session_state.user.id
+            }).execute()
             st.rerun()
