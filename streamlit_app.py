@@ -3,95 +3,165 @@ import pandas as pd
 from datetime import date, timedelta
 from supabase import create_client
 
-# --- 1. CONFIG & AUTH ---
+# --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
 def get_client():
     if "supabase" not in st.session_state:
-        st.session_state.supabase = create_client(st.secrets["url"], st.secrets["key"])
+        st.session_state.supabase = create_client(
+            st.secrets["url"], 
+            st.secrets["key"]
+        )
     return st.session_state.supabase
 
+# --- 2. AUTHENTICATION ---
 if "user" not in st.session_state:
     st.session_state.user = None
 
-# (Authentication block here... see previous responses for full login code)
+if st.session_state.user is None:
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+    with tab1:
+        with st.form("login"):
+            email = st.text_input("Email")
+            pw = st.text_input("Password", type="password")
+            if st.form_submit_button("Login"):
+                try:
+                    res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
+                    st.session_state.user = res.user
+                    get_client().auth.set_session(res.session.access_token, res.session.refresh_token)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Login failed: {e}")
+    with tab2:
+        with st.form("signup"):
+            new_email = st.text_input("New Email")
+            new_pw = st.text_input("New Password", type="password")
+            if st.form_submit_button("Sign Up"):
+                try:
+                    get_client().auth.sign_up({"email": new_email, "password": new_pw})
+                    st.success("Check your email for a confirmation link!")
+                except Exception as e:
+                    st.error(f"Signup failed: {e}")
+    st.stop()
 
-# --- 2. DATA LOADING ---
+# --- 3. DATA LOADING LOGIC ---
 def load_data():
     today = date.today()
-    # Fetch plants
-    p_res = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute()
+    client = get_client()
+    uid = st.session_state.user.id
+
+    # Fetch plants table
+    p_res = client.table("plants").select("*").eq("user_id", uid).execute()
     df_plants = pd.DataFrame(p_res.data)
     
     if df_plants.empty:
         return df_plants
 
-    # Fetch latest logs for each plant to get last_watered and snooze_date
-    l_res = get_client().table("plant_logs").select("*").eq("user_id", st.session_state.user.id).order("last_watered", desc=True).execute()
-    df_logs = pd.DataFrame(l_res.data)
-
-    if not df_logs.empty:
-        # Get only the latest log per plant
-        latest_logs = df_logs.drop_duplicates(subset=["plant_id"])
-        # Merge log info into plants dataframe
-        df_plants = df_plants.merge(latest_logs[['plant_id', 'last_watered', 'snooze_date']], 
-                                    left_on='id', right_on='plant_id', how='left')
-    else:
+    # Fetch logs table for history
+    try:
+        l_res = client.table("plant_logs").select("*").eq("user_id", uid).execute()
+        df_logs = pd.DataFrame(l_res.data)
+        
+        if not df_logs.empty:
+            # Sort locally to avoid API ordering errors
+            df_logs = df_logs.sort_values("last_watered", ascending=False)
+            # Keep only the most recent entry for each plant
+            latest_logs = df_logs.drop_duplicates(subset=["plant_id"])
+            
+            # Merge logs into the plants list
+            df_plants = df_plants.merge(
+                latest_logs[['plant_id', 'last_watered', 'snooze_date']], 
+                left_on='id', 
+                right_on='plant_id', 
+                how='left'
+            )
+        else:
+            df_plants['last_watered'] = None
+            df_plants['snooze_date'] = None
+    except:
         df_plants['last_watered'] = None
         df_plants['snooze_date'] = None
 
     # Filter out snoozed plants
-    df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date']).dt.date
-    is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
+    if 'snooze_date' in df_plants.columns:
+        df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date']).dt.date
+        is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
+        df_plants = df_plants[is_not_snoozed]
     
-    return df_plants[is_not_snoozed]
+    return df_plants
 
+# Execute data load
 df = load_data()
 
-# --- 3. DASHBOARD ---
+# --- 4. DASHBOARD UI ---
 st.title("🪴 My Plant Garden")
 st.markdown(f"### Total Plants: **{len(df)}**")
 
+if st.sidebar.button("Logout"):
+    st.session_state.user = None
+    st.rerun()
+
+# --- 5. PLANT ACTIONS ---
 with st.expander("🚿 Plants to Water", expanded=True):
     if not df.empty:
-        for idx, row in df.iterrows():
-            cols = st.columns([2, 1, 1])
-            cols[0].write(f"**{row['name']}**")
-            
-            # WATER BUTTON
-            if cols[1].button("💧 Water", key=f"w_{row['id']}"):
-                # Insert new log entry as per your schema
-                get_client().table("plant_logs").insert({
-                    "plant_id": row['id'],
-                    "user_id": st.session_state.user.id,
-                    "last_watered": str(date.today()),
-                    "snooze_date": None
-                }).execute()
-                st.rerun()
-            
-            # SNOOZE BUTTON
-            if cols[2].button("😴 Snooze", key=f"s_{row['id']}"):
-                snooze_val = str(date.today() + timedelta(days=2))
-                get_client().table("plant_logs").insert({
-                    "plant_id": row['id'],
-                    "user_id": st.session_state.user.id,
-                    "snooze_date": snooze_val
-                }).execute()
-                st.rerun()
-    else:
-        st.write("All plants are watered or snoozed!")
+        for _, row in df.iterrows():
+            with st.container(border=True):
+                cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
+                
+                with cols[0]:
+                    st.markdown(f"**{row['name']}**")
+                    st.caption(f"Last watered: {row.get('last_watered') or 'Never'}")
+                
+                with cols[1]:
+                    if st.button("💧", key=f"w_{row['id']}"):
+                        get_client().table("plant_logs").insert({
+                            "plant_id": row['id'],
+                            "user_id": st.session_state.user.id,
+                            "last_watered": str(date.today()),
+                            "snooze_date": None
+                        }).execute()
+                        st.toast(f"Watered {row['name']}!")
+                        st.rerun()
 
-# --- 4. ADD PLANT ---
-with st.expander("➕ Add Plant"):
-    with st.form("add"):
-        name = st.text_input("Name")
-        freq = st.number_input("Frequency (days)", value=7)
+                with cols[2]:
+                    if st.button("😴", key=f"s_{row['id']}"):
+                        snooze_until = str(date.today() + timedelta(days=2))
+                        get_client().table("plant_logs").insert({
+                            "plant_id": row['id'],
+                            "user_id": st.session_state.user.id,
+                            "snooze_date": snooze_until
+                        }).execute()
+                        st.rerun()
+    else:
+        st.info("No plants need attention right now.")
+
+# --- 6. ADD NEW PLANT ---
+with st.expander("➕ Add a New Plant"):
+    with st.form("add_plant_form", clear_on_submit=True):
+        new_name = st.text_input("Plant Name")
+        new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
+        # Using exact spelling from your schema: 'acquisition_date'
         acq_date = st.date_input("Acquisition Date", value=date.today())
-        if st.form_submit_button("Save"):
-            get_client().table("plants").insert({
-                "name": name, 
-                "frequency": freq, 
-                "acquisition_date": str(acq_date),
-                "user_id": st.session_state.user.id
-            }).execute()
+        
+        if st.form_submit_button("Add to Collection"):
+            if new_name:
+                get_client().table("plants").insert({
+                    "name": new_name,
+                    "frequency": int(new_freq),
+                    "acquisition_date": str(acq_date),
+                    "user_id": st.session_state.user.id
+                }).execute()
+                st.rerun()
+
+# --- 7. REMOVAL (CEMETERY) ---
+st.divider()
+if not df.empty:
+    with st.expander("🗑️ Remove a Plant"):
+        plant_to_delete = st.selectbox("Select plant to remove:", df['name'].tolist())
+        if st.button("Delete Permanently", type="primary"):
+            target_id = df[df['name'] == plant_to_delete]['id'].values[0]
+            # Delete logs first to satisfy foreign key constraints
+            get_client().table("plant_logs").delete().eq("plant_id", target_id).execute()
+            # Delete plant
+            get_client().table("plants").delete().eq("id", target_id).execute()
             st.rerun()
