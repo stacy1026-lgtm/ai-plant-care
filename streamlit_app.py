@@ -84,11 +84,15 @@ def load_data():
 
     # Filter out snoozed plants
     if 'snooze_date' in df_plants.columns:
-        df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date']).dt.date
-        is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
-        df_plants = df_plants[is_not_snoozed]
-    
-    return df_plants
+            # 1. Convert the column to actual Date objects
+            df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date']).dt.date
+            
+            # 2. Compare Date object with Date object
+            # Both df_plants['snooze_date'] and today are now the same type
+            is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
+            df_plants = df_plants[is_not_snoozed]
+        
+        return df_plants
 
 # Execute data load
 df = load_data()
