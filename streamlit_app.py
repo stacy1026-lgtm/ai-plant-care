@@ -1,92 +1,75 @@
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime, timedelta
-from supabase import create_client
+from datetime import date, timedelta
 
-# 1. Configuration
-st.set_page_config(page_title="Plant Garden", page_icon="🪴")
-URL = st.secrets["url"]
-KEY = st.secrets["key"]
-
-# 2. Auth & Client Initialization
-if "supabase" not in st.session_state:
-    st.session_state.supabase = create_client(URL, KEY)
-
-def get_client():
-    return st.session_state.supabase
-
-# Authentication UI
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-if st.session_state.user is None:
-    tab1, tab2 = st.tabs(["Login", "Sign Up"])
-    with tab1:
-        with st.form("login"):
-            email = st.text_input("Email")
-            pw = st.text_input("Password", type="password")
-            if st.form_submit_button("Login"):
-                res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
-                st.session_state.user = res.user
-                get_client().auth.set_session(res.session.access_token, res.session.refresh_token)
-                st.rerun()
-    with tab2:
-        with st.form("signup"):
-            email = st.text_input("New Email")
-            pw = st.text_input("New Password", type="password")
-            if st.form_submit_button("Sign Up"):
-                get_client().auth.sign_up({"email": email, "password": pw})
-                st.success("Check your email!")
-    st.stop()
-
-# 3. Main Dashboard
-st.title("🪴 My Plant Garden")
-
-# 1. Fetch raw data
+# --- 1. Data Fetching ---
 raw_data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
 total_plants = len(raw_data)
 df = pd.DataFrame(raw_data)
 
-# 2. ADD THESE TO DISPLAY
+# --- 2. Header ---
 st.markdown(f"### Total Plants: **{total_plants}**")
 
+# --- 3. Action Loop (Water & Snooze) ---
 if not df.empty:
-    st.dataframe(df)
-else:
-    st.write("Your garden is empty!")
+    # We sort by name for a clean UI
+    df_active = df[df['status'] != 'deceased'].sort_values('name')
+    
+    for index, row in df_active.iterrows():
+        with st.container(border=True):
+            cols = st.columns([2, 0.6, 0.6], gap="small", vertical_alignment="center")
+            
+            with cols[0]:
+                st.markdown(f"**{row['name']}**")
+                st.caption(f"Last watered: {row['last_watered'] or 'Never'}")
+            
+            with cols[1]:
+                # WATER BUTTON
+                if st.button("💧", key=f"w_{row['id']}"):
+                    today_str = str(date.today())
+                    # Update Main Table
+                    get_client().table("plants").update({
+                        "last_watered": today_str,
+                        "snooze_date": None
+                    }).eq("id", row['id']).execute()
+                    
+                    # Log to History Table
+                    get_client().table("plant_logs").insert({
+                        "plant_id": row['id'],
+                        "user_id": st.session_state.user.id,
+                        "date_watered": today_str
+                    }).execute()
+                    
+                    st.toast(f"{row['name']} watered! 🌊")
+                    st.rerun()
 
-# Helper: Fetch Data
-def load_data():
-    plants = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-    return pd.DataFrame(plants)
+            with cols[2]:
+                # SNOOZE BUTTON
+                if st.button("😴", key=f"s_{row['id']}"):
+                    reappear = (date.today() + timedelta(days=2)).isoformat()
+                    get_client().table("plants").update({
+                        "snooze_date": reappear
+                    }).eq("id", row['id']).execute()
+                    st.rerun()
 
-df = load_data()
-
-# 4. Watering Logic
-with st.expander("🚿 Plants to Water"):
-    if not df.empty:
-        for idx, row in df.iterrows():
-            cols = st.columns([2, 1])
-            cols[0].write(f"**{row['name']}**")
-            if cols[1].button("💧 Water", key=f"w_{row['id']}"):
-                get_client().table("plants").update({"last_watered": str(date.today())}).eq("id", row['id']).execute()
-                get_client().table("plant_logs").insert({"plant_id": row['id'], "user_id": st.session_state.user.id}).execute()
-                st.rerun()
-
-# 5. Add Plant
-with st.expander("➕ Add Plant"):
-    with st.form("add"):
-        name = st.text_input("Name")
-        freq = st.number_input("Frequency", value=7)
-        if st.form_submit_button("Save"):
-            get_client().table("plants").insert({"name": name, "frequency": freq, "user_id": st.session_state.user.id}).execute()
-            st.rerun()
-
-# 6. Cemetery
+# --- 4. Plant Cemetery ---
+st.divider()
 with st.expander("💀 Plant Cemetery"):
     if not df.empty:
-        selection = st.selectbox("Select to remove:", df['name'])
-        if st.button("Confirm Removal"):
-            target = df[df['name'] == selection].iloc[0]
-            get_client().table("plants").delete().eq("id", target['id']).execute()
-            st.rerun()
+        # Filter for the dropdown
+        living_plants = df[df['status'] != 'deceased']
+        
+        selected_plant = st.selectbox(
+            "Select a plant to move to the cemetery:",
+            options=living_plants['name'].tolist(),
+            index=None,
+            placeholder="Choose a plant..."
+        )
+        
+        if selected_plant:
+            if st.button("Confirm RIP", type="primary"):
+                get_client().table("plants").update({
+                    "status": "deceased"
+                }).eq("name", selected_plant).eq("user_id", st.session_state.user.id).execute()
+                st.success(f"{selected_plant} has been moved to the cemetery. 🥀")
+                st.rerun()
