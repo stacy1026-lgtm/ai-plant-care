@@ -92,7 +92,7 @@ def load_data():
             is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
             df_plants = df_plants[is_not_snoozed]
         
-        return df_plants
+    return df_plants
 
 # Execute data load
 df = load_data()
