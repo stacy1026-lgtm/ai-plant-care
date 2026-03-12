@@ -84,11 +84,13 @@ def load_data():
 
     # Filter out snoozed plants
     if 'snooze_date' in df_plants.columns:
-            # 1. Convert the column to actual Date objects
-            df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date']).dt.date
+            # Convert to datetime, coercing errors to NaT (Not a Time)
+            df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date'], errors='coerce')
             
-            # 2. Compare Date object with Date object
-            # Both df_plants['snooze_date'] and today are now the same type
+            # Now compare date.today() (casted to timestamp) against the column
+            today = pd.Timestamp(date.today())
+            
+            # Mask: keep if NaT (not snoozed) OR date is in the past
             is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
             df_plants = df_plants[is_not_snoozed]
         
