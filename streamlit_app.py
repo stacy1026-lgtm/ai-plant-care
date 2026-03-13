@@ -125,6 +125,9 @@ with st.expander("🚿 Plants to Water", expanded=True):
                             "plant_id": row['id'],
                             "last_watered": str(date.today()),
                         }).execute()
+                        get_client().table("plants").update({
+                            "last_watered": str(date.today())
+                        }).eq("id", target_id).execute()
                         
                         # 2. Clear any existing snooze on the plant itself
                         get_client().table("plants").update({
