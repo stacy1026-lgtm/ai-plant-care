@@ -171,3 +171,29 @@ if not df.empty:
             # Delete plant
             get_client().table("plants").delete().eq("id", target_id).execute()
             st.rerun()
+            
+# --- 8. VIEW & WATER COLLECTION ---
+st.divider()
+with st.expander("📋 View & Water Collection"):
+    # Fetch full list
+    full_data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+    
+    if full_data:
+        df_full = pd.DataFrame(full_data)
+        
+        # Display in a loop to add buttons per row
+        for _, row in df_full.iterrows():
+            cols = st.columns([3, 1])
+            cols[0].write(f"**{row['name']}** (Freq: {row['frequency']} days)")
+            
+            if cols[1].button("💧 Water Now", key=f"water_view_{row['id']}"):
+                get_client().table("plant_logs").insert({
+                    "plant_id": row['id'],
+                    "user_id": st.session_state.user.id,
+                    "last_watered": str(date.today()),
+                    "snooze_date": None
+                }).execute()
+                st.toast(f"Watered {row['name']}!")
+                st.rerun()
+    else:
+        st.write("Your collection is currently empty.")
