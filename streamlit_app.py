@@ -172,28 +172,34 @@ if not df.empty:
             get_client().table("plants").delete().eq("id", target_id).execute()
             st.rerun()
             
-# --- 8. VIEW & WATER COLLECTION ---
-st.divider()
-with st.expander("📋 View & Water Collection"):
-    # Fetch full list
-    full_data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-    
-    if full_data:
-        df_full = pd.DataFrame(full_data)
+# --- VIEW FULL COLLECTION ---
+with st.expander("📋 View Full Collection"):
+    # 1. Fetch data
+    data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+    df = pd.DataFrame(data)
+
+    if not df.empty:
+        # 2. Quick Update Section
+        st.subheader("⚡ Quick Update")
+        col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
         
-        # Display in a loop to add buttons per row
-        for _, row in df_full.iterrows():
-            cols = st.columns([3, 1])
-            cols[0].write(f"**{row['name']}** (Freq: {row['frequency']} days)")
-            
-            if cols[1].button("💧 Water Now", key=f"water_view_{row['id']}"):
+        # Create a display name for the dropdown
+        df['display'] = df['name']
+        
+        with col1:
+            selected_plant_name = st.selectbox("Select a plant to mark as watered:", df['display'])
+        
+        with col2:
+            if st.button("💧 Water Now", type="primary"):
+                target = df[df['display'] == selected_plant_name].iloc[0]
                 get_client().table("plant_logs").insert({
-                    "plant_id": row['id'],
+                    "plant_id": target['id'],
                     "user_id": st.session_state.user.id,
-                    "last_watered": str(date.today()),
-                    "snooze_date": None
+                    "last_watered": str(date.today())
                 }).execute()
-                st.toast(f"Watered {row['name']}!")
                 st.rerun()
+
+        # 3. Table Display
+        st.table(df[['name', 'frequency']]) # Replace with your specific columns
     else:
-        st.write("Your collection is currently empty.")
+        st.write("No plants found.")
