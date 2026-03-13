@@ -200,7 +200,6 @@ if not df.empty:
                     st.success(f"{target['name']} removed from your collection.")
                     st.rerun()
 
-# --- VIEW FULL COLLECTION ---
 with st.expander("📋 View Full Collection"):
     # 1. Fetch data
     data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
@@ -211,57 +210,34 @@ with st.expander("📋 View Full Collection"):
         st.subheader("⚡ Quick Update")
         col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
         
-        # Create a display name for the dropdown
-        df['display'] = df['name']
-        
+        # Use the name directly for the dropdown
         with col1:
-            selected_label = st.selectbox(
+            selected_plant = st.selectbox(
                 "Select the plant to water:",
-                options=df_delete['Display'].tolist(),
+                options=df['name'].tolist(),
                 index=None,
                 placeholder="Type plant name..."
             )
         
         with col2:
             if st.button("💧 Water Now", type="primary"):
-                target = df[df['display'] == selected_plant_name].iloc[0]
-                get_client().table("plant_logs").insert({
-                    "plant_id": target['id'],
-                    "user_id": st.session_state.user.id,
-                    "last_watered": str(date.today())
-                }).execute()
-                st.rerun()
+                if selected_plant:
+                    # Find the row for the selected plant name
+                    target = df[df['name'] == selected_plant].iloc[0]
+                    get_client().table("plant_logs").insert({
+                        "plant_id": target['id'],
+                        "user_id": st.session_state.user.id,
+                        "last_watered": str(date.today())
+                    }).execute()
+                    st.toast(f"Watered {selected_plant}!")
+                    st.rerun()
+                else:
+                    st.warning("Please select a plant first.")
 
         # 3. Table Display
-        st.table(df[['name', 'frequency']]) # Replace with your specific columns
+        st.table(df[['name', 'frequency']])
     else:
-        st.write("No plants found.")
-                            
-                            # --- UI CARD START ---
-                            with st.container(border=True):
-                                st.subheader(plant_row['name'])
-                                # Displaying Acquisition Date as the "ID" per your screenshot
-                                st.caption(f"ID: {plant_row['acquadition_date']}")
-                                
-                                st.markdown(f"Average: **{avg_gap} days** (Current: {current_f}d)")
-                                
-                                # Buttons row
-                                btn_cols = st.columns([1, 1, 4]) 
-                                
-                                with btn_cols[0]:
-                                    if st.button("✔️", key=f"accept_{p_id}"):
-                                        get_client().table("plants").update({
-                                            "frequency": avg_gap,
-                                            "dismissed_gap": 0
-                                        }).eq("id", p_id).execute()
-                                        st.rerun()
-                                        
-                                with btn_cols[1]:
-                                    if st.button("✖️", key=f"ignore_{p_id}"):
-                                        get_client().table("plants").update({
-                                            "dismissed_gap": avg_gap
-                                        }).eq("id", p_id).execute()
-                                        st.rerun()            
+        st.write("No plants found.")            
 # --- VIEW FULL COLLECTION ---
 with st.expander("📊 Smart Frequency Analysis", expanded=False):
     try:
