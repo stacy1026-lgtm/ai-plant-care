@@ -231,3 +231,57 @@ with st.expander("📋 View Full Collection"):
         st.table(df[['name', 'frequency']]) # Replace with your specific columns
     else:
         st.write("No plants found.")
+# --- 6. SMART FREQUENCY ANALYSIS ---
+with st.expander("📊 Smart Frequency Analysis", expanded=False):
+    try:
+        # Fetch logs from Supabase
+        logs_res = get_client().table("plant_logs").select("*").eq("user_id", st.session_state.user.id).execute()
+        hist = pd.DataFrame(logs_res.data)
+
+        if not hist.empty and 'last_watered' in hist.columns:
+            hist['last_watered'] = pd.to_datetime(hist['last_watered']).dt.date
+            suggestions_found = False
+            
+            # Group by plant_id
+            for p_id, p_history in hist.groupby('plant_id'):
+                p_dates = p_history['last_watered'].dropna().sort_values()
+                
+                if len(p_dates) >= 3:
+                    avg_gap = int(p_dates.diff().mean().days)
+                    
+                    # Find the specific plant in our main 'df'
+                    match = df[df['id'] == p_id]
+                    
+                    if not match.empty:
+                        idx = match.index[0]
+                        current_f = int(match['frequency'].values[0])
+                        
+                        # Handle dismissed_gap (using your schema's column name)
+                        d_val = match.get('dismissed_gap', [0]).values[0]
+                        d_gap = int(d_val) if pd.notnull(d_val) else 0
+                        
+                        if avg_gap != current_f and avg_gap != d_gap:
+                            suggestions_found = True
+                            with st.container(border=True):
+                                st.write(f"### {match['name'].values[0]}")
+                                st.write(f"Average: **{avg_gap} days** (Current: {current_f}d)")
+                                
+                                b_cols = st.columns([0.15, 0.15, 0.7])
+                                if b_cols[0].button("✔️ Accept", key=f"up_{p_id}"):
+                                    get_client().table("plants").update({
+                                        "frequency": avg_gap,
+                                        "dismissed_gap": 0
+                                    }).eq("id", p_id).execute()
+                                    st.rerun()
+                                if b_cols[1].button("✖️ Ignore", key=f"no_{p_id}"):
+                                    get_client().table("plants").update({
+                                        "dismissed_gap": avg_gap
+                                    }).eq("id", p_id).execute()
+                                    st.rerun()
+            
+            if not suggestions_found:
+                st.write("Frequencies match your habits!")
+        else:
+            st.info("Log 3+ waterings per plant for insights.")
+    except Exception as e:
+        st.error(f"Analysis Error: {e}")
