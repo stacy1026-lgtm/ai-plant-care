@@ -199,64 +199,45 @@ if not df.empty:
                     
                     st.success(f"{target['name']} removed from your collection.")
                     st.rerun()
-# --- VIEW FULL COLLECTION ---
-with st.expander("📊 Smart Frequency Analysis", expanded=False):
-    try:
-        # Fetch care history from Supabase
-        logs_res = get_client().table("plant_logs").select("*").execute()
-        hist = pd.DataFrame(logs_res.data)
 
-        if not hist.empty and 'last_watered' in hist.columns:
-            hist['last_watered'] = pd.to_datetime(hist['last_watered']).dt.date
-            suggestions_found = False
-            
-            # Group by plant_id to analyze each individual plant's history
-            for p_id, p_history in hist.groupby('plant_id'):
-                p_dates = p_history['last_watered'].dropna().sort_values()
-                
-                # We need at least 3 waterings to establish a pattern
-                if len(p_dates) >= 3:
-                    avg_gap = int(p_dates.diff().mean().days)
-                    
-                    # Match this log data back to the main plant info
-                    match = df[df['id'] == p_id]
-                    
-                    if not match.empty:
-                        plant_row = match.iloc[0]
-                        current_f = int(plant_row['frequency'])
-                        
-                        # Check if we've already ignored this specific average
-                        d_val = plant_row.get('dismissed_gap', 0)
-                        d_gap = int(d_val) if pd.notnull(d_val) else 0
-                        
-                        if avg_gap != current_f and avg_gap != d_gap:
-                            suggestions_found = True
-                            
-                            # --- UI CARD START ---
-                            with st.container(border=True):
-                                st.subheader(plant_row['name'])
-                                # Displaying Acquisition Date as the "ID" per your screenshot
-                                st.caption(f"ID: {plant_row['acquadition_date']}")
-                                
-                                st.markdown(f"Average: **{avg_gap} days** (Current: {current_f}d)")
-                                
-                                # Buttons row
-                                btn_cols = st.columns([1, 1, 4]) 
-                                
-                                with btn_cols[0]:
-                                    if st.button("✔️", key=f"accept_{p_id}"):
-                                        get_client().table("plants").update({
-                                            "frequency": avg_gap,
-                                            "dismissed_gap": 0
-                                        }).eq("id", p_id).execute()
-                                        st.rerun()
-                                        
-                                with btn_cols[1]:
-                                    if st.button("✖️", key=f"ignore_{p_id}"):
-                                        get_client().table("plants").update({
-                                            "dismissed_gap": avg_gap
-                                        }).eq("id", p_id).execute()
-                                        st.rerun()            
+with st.expander("📋 View Full Collection"):
+    # 1. Fetch data
+    data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+    df = pd.DataFrame(data)
+
+    if not df.empty:
+        # 2. Quick Update Section
+        st.subheader("⚡ Quick Update")
+        col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
+        
+        # Use the name directly for the dropdown
+        with col1:
+            selected_plant = st.selectbox(
+                "Select the plant to water:",
+                options=df['name'].tolist(),
+                index=None,
+                placeholder="Type plant name..."
+            )
+        
+        with col2:
+            if st.button("💧 Water Now", type="primary"):
+                if selected_plant:
+                    # Find the row for the selected plant name
+                    target = df[df['name'] == selected_plant].iloc[0]
+                    get_client().table("plant_logs").insert({
+                        "plant_id": target['id'],
+                        "user_id": st.session_state.user.id,
+                        "last_watered": str(date.today())
+                    }).execute()
+                    st.toast(f"Watered {selected_plant}!")
+                    st.rerun()
+                else:
+                    st.warning("Please select a plant first.")
+
+        # 3. Table Display
+        st.table(df[['name', 'frequency']])
+    else:
+        st.write("No plants found.")            
 # --- VIEW FULL COLLECTION ---
 with st.expander("📊 Smart Frequency Analysis", expanded=False):
     try:
