@@ -167,7 +167,7 @@ if not df.empty:
             "Select the plant that didn't make it:",
             options=df_delete['Display'].tolist(),
             index=None,
-            placeholder="Type plant name..."
+            placeholder="Type plant name...")
             
         if st.button("Delete Permanently", type="primary"):
             target_id = df[df['name'] == plant_to_delete]['id'].values[0]
