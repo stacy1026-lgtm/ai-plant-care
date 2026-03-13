@@ -235,7 +235,7 @@ with st.expander("📋 View Full Collection"):
 with st.expander("📊 Smart Frequency Analysis", expanded=False):
     try:
         # Fetch logs from Supabase
-        logs_res = get_client().table("plant_logs").select("*").eq("user_id", st.session_state.user.id).execute()
+        logs_res = get_client().table("plant_logs").select("*").execute()
         hist = pd.DataFrame(logs_res.data)
 
         if not hist.empty and 'last_watered' in hist.columns:
