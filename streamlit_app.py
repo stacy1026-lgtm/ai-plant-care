@@ -163,7 +163,12 @@ with st.expander("➕ Add a New Plant"):
 st.divider()
 if not df.empty:
     with st.expander("🗑️ Remove a Plant"):
-        plant_to_delete = st.selectbox("Select plant to remove:", df['name'].tolist())
+        selected_label = st.selectbox(
+            "Select the plant that didn't make it:",
+            options=df_delete['Display'].tolist(),
+            index=None,
+            placeholder="Type plant name..."
+            
         if st.button("Delete Permanently", type="primary"):
             target_id = df[df['name'] == plant_to_delete]['id'].values[0]
             # Delete logs first to satisfy foreign key constraints
