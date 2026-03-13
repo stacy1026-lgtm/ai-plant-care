@@ -119,15 +119,22 @@ with st.expander("🚿 Plants to Water", expanded=True):
                     st.caption(f"Last watered: {row.get('last_watered') or 'Never'}")
                 
                 with cols[1]:
-                    if st.button("💧", key=f"w_{row['id']}"):
-                        # 1. Add care entry to logs (Remove user_id from here)
-                        get_client().table("plant_logs").insert({
-                            "plant_id": row['id'],
-                            "last_watered": str(date.today()),
-                        }).execute()
-                        get_client().table("plants").update({
-                            "last_watered": str(date.today())
-                        }).eq("id", target_id).execute()
+                    with cols[1]:
+                        if st.button("💧", key=f"w_{row['id']}"):
+                            today = str(date.today())
+                            
+                            # 1. Add care entry to logs
+                            get_client().table("plant_logs").insert({
+                                "plant_id": row['id'],
+                                "last_watered": today,
+                            }).execute()
+                            
+                            # 2. Update the 'plants' table with the new date
+                            get_client().table("plants").update({
+                                "last_watered": today
+                            }).eq("id", row['id']).execute()
+                            
+                            st.rerun()
                         
                         # 2. Clear any existing snooze on the plant itself
                         get_client().table("plants").update({
