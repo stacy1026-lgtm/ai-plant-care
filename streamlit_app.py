@@ -171,7 +171,7 @@ if not df.empty:
             df_delete['Display'] = (
                 df_delete['name'] + 
                 " (Acquired: " + 
-                df_delete['acquadition_date'].astype(str) + 
+                df_delete['acquisition_date'].astype(str) + 
                 ")"
             )
             
