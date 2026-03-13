@@ -132,11 +132,11 @@ with st.expander("🚿 Plants to Water", expanded=True):
                 with cols[2]:
                     if st.button("😴", key=f"s_{row['id']}"):
                         snooze_until = str(date.today() + timedelta(days=2))
-                        get_client().table("plant_logs").insert({
-                            "plant_id": row['id'],
-                            "user_id": st.session_state.user.id,
+                        # Update the 'plants' table directly for the specific plant ID
+                        get_client().table("plants").update({
                             "snooze_date": snooze_until
-                        }).execute()
+                        }).eq("id", row['id']).execute()
+                        
                         st.rerun()
     else:
         st.info("No plants need attention right now.")
