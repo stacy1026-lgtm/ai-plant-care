@@ -210,7 +210,12 @@ with st.expander("📋 View Full Collection"):
         df['display'] = df['name']
         
         with col1:
-            selected_plant_name = st.selectbox("Select plant to water:", df['name'].tolist())
+            selected_label = st.selectbox(
+                "Select the plant to water:",
+                options=df_delete['Display'].tolist(),
+                index=None,
+                placeholder="Type plant name..."
+            )
         
         with col2:
             if st.button("💧 Water Now", type="primary"):
