@@ -3,23 +3,6 @@ import pandas as pd
 from datetime import date, timedelta
 from supabase import create_client
 
-
-def water_plant(plant_id):
-    today = str(date.today())
-    
-    # Insert log
-    get_client().table("plant_logs").insert({
-        "plant_id": plant_id,
-        "last_watered": today,
-    }).execute()
-    
-    # Update plant
-    get_client().table("plants").update({
-        "last_watered": today
-    }).eq("id", plant_id).execute()
-
-
-
 # --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
@@ -137,9 +120,11 @@ with st.expander("🚿 Plants to Water", expanded=True):
                 
                 with cols[1]:
                     if st.button("💧", key=f"w_{row['id']}"):
-                        water_plant(row['id'])
-                        st.toast(f"Watered plant {row['id']}!")
-                        st.rerun()
+                        # 1. Add care entry to logs (Remove user_id from here)
+                        get_client().table("plant_logs").insert({
+                            "plant_id": row['id'],
+                            "last_watered": str(date.today()),
+                        }).execute()
                         
                         # 2. Clear any existing snooze on the plant itself
                         get_client().table("plants").update({
