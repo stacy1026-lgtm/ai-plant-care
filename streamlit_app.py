@@ -120,12 +120,17 @@ with st.expander("🚿 Plants to Water", expanded=True):
                 
                 with cols[1]:
                     if st.button("💧", key=f"w_{row['id']}"):
+                        # 1. Add care entry to logs (Remove user_id from here)
                         get_client().table("plant_logs").insert({
                             "plant_id": row['id'],
-                            "user_id": st.session_state.user.id,
                             "last_watered": str(date.today()),
-                            "snooze_date": None
                         }).execute()
+                        
+                        # 2. Clear any existing snooze on the plant itself
+                        get_client().table("plants").update({
+                            "snooze_date": None
+                        }).eq("id", row['id']).execute()
+                        
                         st.toast(f"Watered {row['name']}!")
                         st.rerun()
 
