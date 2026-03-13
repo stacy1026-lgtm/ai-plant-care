@@ -232,7 +232,7 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                             with st.container(border=True):
                                 st.subheader(plant_row['name'])
                                 # Displaying Acquisition Date as the "ID" per your screenshot
-                                st.caption(f"ID: {plant_row['acquadition_date']}")
+                                st.caption(f"ID: {plant_row['acquisition_date']}")
                                 
                                 st.markdown(f"Average: **{avg_gap} days** (Current: {current_f}d)")
                                 
