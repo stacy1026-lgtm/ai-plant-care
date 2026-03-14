@@ -175,8 +175,8 @@ if not df.empty:
 
 with st.expander("📋 View Full Collection"):
     # 1. Fetch data
-    data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-    df = pd.DataFrame(data)
+    res = get_client().from_("plant_status_view").select("*").execute()
+    df_view = pd.DataFrame(res.data)
 
     if not df.empty:
         # 2. Quick Update Section
@@ -207,9 +207,10 @@ with st.expander("📋 View Full Collection"):
                     st.warning("Please select a plant first.")
 
         # 3. Table Display
-        st.table(df[['name', 'frequency']])
+        st.table(df_view[['name', 'frequency', last_watered]])
     else:
-        st.write("No plants found.")            
+        st.write("No plants found.")
+        
 # --- VIEW FULL COLLECTION ---
 with st.expander("📊 Smart Frequency Analysis", expanded=False):
     try:
