@@ -197,8 +197,7 @@ with st.expander("📋 View Full Collection"):
                     # Find the row for the selected plant name
                     target = df[df['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
-                        "plant_id": int(target['id']),  # Force Python int
-                        "id": str(st.session_state.id), # Force as string
+                        "plant_id": int(target['id']),
                         "last_watered": str(date.today())
                     }).execute()
                     st.toast(f"Watered {selected_plant}!")
