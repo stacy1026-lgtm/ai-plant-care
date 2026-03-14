@@ -78,7 +78,7 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # --- 5. PLANT ACTIONS ---
-with st.expander("🚿 Plants to Water", expanded=True):
+with st.expander("🚿 Plants to Water {len(df)}", expanded=True):
     if not df.empty:
         for _, row in df.iterrows():
             with st.container(border=True):
