@@ -207,7 +207,7 @@ with st.expander("📋 View Full Collection"):
                     st.warning("Please select a plant first.")
 
         # 3. Table Display
-        st.table(df_view[['name', 'frequency', last_watered]])
+        st.table(df_view[['name', 'frequency', 'last_watered']])
     else:
         st.write("No plants found.")
         
