@@ -197,7 +197,7 @@ with st.expander("📋 View Full Collection"):
                     # Find the row for the selected plant name
                     target = df[df['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
-                        "plant_id": target['id'],
+                        "plant_id": target['"plant_id": int(target['id']),id'],
                         "user_id": st.session_state.user.id,
                         "last_watered": str(date.today())
                     }).execute()
@@ -257,9 +257,9 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                 with btn_cols[0]:
                                     if st.button("✔️", key=f"accept_{p_id}"):
                                         get_client().table("plants").update({
-                                            "frequency": avg_gap,
+                                            "frequency": int(avg_gap),
                                             "dismissed_gap": 0
-                                        }).eq("id", p_id).execute()
+                                        }).eq("id", int(p_id)).execute()
                                         st.rerun()
                                         
                                 with btn_cols[1]:
