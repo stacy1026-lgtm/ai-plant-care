@@ -49,22 +49,21 @@ def load_data():
     client = get_client()
     uid = st.session_state.user.id
 
-    # Fetch the pre-calculated view
-    # Note: Ensure the view includes user_id if you need to filter by it
+    # Fetch all plants from the view
     res = client.from_("plant_status_view").select("*").execute()
-    df = pd.DataFrame(res.data)
+    df_all = pd.DataFrame(res.data)
     
-    if df.empty:
-        return df
+    if df_all.empty:
+        return df_all, df_all
 
-    # Convert dates for the filtering logic
-    df['snooze_date'] = pd.to_datetime(df['snooze_date'], errors='coerce')
+    # Prepare filtered dataframe
+    df_filtered = df_all.copy()
+    df_filtered['snooze_date'] = pd.to_datetime(df_filtered['snooze_date'], errors='coerce')
     
-    # Filter out snoozed plants (keep if NaT or date in past)
     today = pd.Timestamp(date.today())
-    is_not_snoozed = (df['snooze_date'].isna()) | (df['snooze_date'] <= today)
+    is_not_snoozed = (df_filtered['snooze_date'].isna()) | (df_filtered['snooze_date'] <= today)
     
-    return df[is_not_snoozed]
+    return df_filtered[is_not_snoozed], df_all
 
 # Execute data load
 df = load_data()
@@ -136,7 +135,7 @@ with st.expander("➕ Add a New Plant"):
 
 # --- 7. REMOVAL (CEMETERY) ---
 st.divider()
-if not df.empty:
+if not df_all.empty:
     with st.expander("💀 Plant Cemetery (Remove a Plant)"):
         if not df.empty:
             # Create a copy to avoid mutating the original dataframe
