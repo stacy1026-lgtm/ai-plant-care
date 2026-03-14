@@ -197,7 +197,7 @@ with st.expander("📋 View Full Collection"):
         with col1:
             selected_plant = st.selectbox(
                 "Select the plant to water:",
-                options=df['name'].tolist(),
+                options=df_view['name'].tolist(),
                 index=None,
                 placeholder="Type plant name..."
             )
@@ -206,7 +206,7 @@ with st.expander("📋 View Full Collection"):
             if st.button("💧 Water Now", type="primary"):
                 if selected_plant:
                     # Find the row for the selected plant name
-                    target = df[df['name'] == selected_plant].iloc[0]
+                    target = df_view[df_view['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
                         "plant_id": int(target['id']),
                         "last_watered": str(date.today())
