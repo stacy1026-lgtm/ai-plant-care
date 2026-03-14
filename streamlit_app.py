@@ -130,6 +130,7 @@ with st.expander("➕ Add a New Plant"):
                     "name": new_name,
                     "frequency": int(new_freq),
                     "acquisition_date": str(acq_date),
+                    "user_id": st.session_state.user.id
                 }).execute()
                 st.rerun()
 
