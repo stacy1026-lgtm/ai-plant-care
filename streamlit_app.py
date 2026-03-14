@@ -78,7 +78,7 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # --- 5. PLANT ACTIONS ---
-with st.expander(f"🚿 Plants to Water ({len(df_to_water)})", expanded=True):
+with st.expander("🚿 Plants to Water", expanded=True):
     if not df.empty:
         for _, row in df.iterrows():
             with st.container(border=True):
@@ -197,7 +197,8 @@ with st.expander("📋 View Full Collection"):
                     # Find the row for the selected plant name
                     target = df[df['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
-                        "plant_id": int(target['id']),
+                        "plant_id": target['id'],
+                        "user_id": st.session_state.user.id,
                         "last_watered": str(date.today())
                     }).execute()
                     st.toast(f"Watered {selected_plant}!")
@@ -256,9 +257,9 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                 with btn_cols[0]:
                                     if st.button("✔️", key=f"accept_{p_id}"):
                                         get_client().table("plants").update({
-                                            "frequency": int(avg_gap),
+                                            "frequency": avg_gap,
                                             "dismissed_gap": 0
-                                        }).eq("id", int(p_id)).execute()
+                                        }).eq("id", p_id).execute()
                                         st.rerun()
                                         
                                 with btn_cols[1]:
