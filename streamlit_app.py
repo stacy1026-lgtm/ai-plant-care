@@ -218,7 +218,7 @@ with st.expander("📋 View Full Collection"):
         display_df['next_watered'] = display_df['next_watered'].dt.date
 
         display_df.columns = ['Plant Name', 'Frequency', 'Last Watered', 'Next Water']
-        st.dataframe(display_df, use_container_width=True)
+        st.dataframe(display_df, use_container_width=True,hide_index=True)
     else:
         st.write("No plants found.")
 
