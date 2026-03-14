@@ -178,7 +178,13 @@ with st.expander("📋 View Full Collection"):
     res = get_client().from_("plant_status_view").select("*").execute()
     df_view = pd.DataFrame(res.data)
 
-    if not df.empty:
+    if not df_view.empty:
+        df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
+        df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
+
+        due_date = df_view['last_watered'] + pd.to_timedelta(df_view['frequency'], unit='D')
+        df_view['next_watered'] = due_date.combine(df_view['snooze_date'], max)
+        
         # 2. Quick Update Section
         st.subheader("⚡ Quick Update")
         col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
@@ -207,11 +213,16 @@ with st.expander("📋 View Full Collection"):
                     st.warning("Please select a plant first.")
 
         # 3. Table Display
-        display_df = df_view[['name', 'frequency', 'last_watered']]
-        display_df.columns = ['Plant Name', 'Frequency', 'Last Watered']
-        st.table(display_df)
+        display_df = df_view[['name', 'frequency', 'last_watered', 'next_watered']].copy()
+        display_df['last_watered'] = display_df['last_watered'].dt.date
+        display_df['next_watered'] = display_df['next_watered'].dt.date
+
+        display_df.columns = ['Plant Name', 'Frequency', 'Last Watered', 'Next Water']
+        st.dataframe(display_df, use_container_width=True)
     else:
         st.write("No plants found.")
+
+
         
 # --- VIEW FULL COLLECTION ---
 with st.expander("📊 Smart Frequency Analysis", expanded=False):
