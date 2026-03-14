@@ -123,7 +123,6 @@ with st.expander("➕ Add a New Plant"):
     with st.form("add_plant_form", clear_on_submit=True):
         new_name = st.text_input("Plant Name")
         new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
-        # Using exact spelling from your schema: 'acquisition_date'
         acq_date = st.date_input("Acquisition Date", value=date.today())
         
         if st.form_submit_button("Add to Collection"):
@@ -134,7 +133,11 @@ with st.expander("➕ Add a New Plant"):
                     "acquisition_date": str(acq_date),
                     "user_id": st.session_state.user.id
                 }).execute()
-                st.rerun()
+                
+                st.success(f"Added {new_name}!")
+                st.rerun() # The trigger runs now; the UI refreshes immediately
+            else:
+                st.warning("Please enter a plant name.")
 
 # --- 7. REMOVAL (CEMETERY) ---
 st.divider()
