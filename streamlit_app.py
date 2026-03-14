@@ -197,7 +197,7 @@ with st.expander("📋 View Full Collection"):
                     # Find the row for the selected plant name
                     target = df[df['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
-                        "plant_id": target['"plant_id": int(target['id']),id'],
+                        "plant_id": int(target['id']),
                         "user_id": st.session_state.user.id,
                         "last_watered": str(date.today())
                     }).execute()
