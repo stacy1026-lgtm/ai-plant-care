@@ -66,7 +66,7 @@ def load_data():
     return df_filtered[is_not_snoozed], df_all
 
 # Execute data load
-df = load_data()
+df_to_water, df_all = load_data()
 
 # --- 4. DASHBOARD UI ---
 st.title("🪴 My Plant Garden")
