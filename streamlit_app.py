@@ -209,6 +209,7 @@ with st.expander("📋 View Full Collection"):
         # 3. Table Display
         display_df = df_view[['name', 'frequency', 'last_watered']]
         display_df.columns = ['Plant Name', 'Frequency', 'Last Watered']
+        st.table(display_df)
     else:
         st.write("No plants found.")
         
