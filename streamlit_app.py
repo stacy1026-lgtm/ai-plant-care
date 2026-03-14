@@ -71,7 +71,7 @@ df = load_data()
 
 # --- 4. DASHBOARD UI ---
 st.title("🪴 My Plant Garden")
-st.markdown(f"### Total Plants: **{len(df)}**")
+st.markdown(f"### Total Plants: **{len(df_all)}**")
 
 if st.sidebar.button("Logout"):
     st.session_state.user = None
