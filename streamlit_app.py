@@ -86,7 +86,7 @@ with st.expander(f"🚿 Plants to Water ({len(df)})", expanded=True):
                 cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
                 
                 with cols[0]:
-                    st.markdown(f"**{row['name']}**")
+                    st.markdown(f"**{row['name']}** - {row['acquisition_date']}")
                     st.caption(f"Last watered: {row.get('last_watered') or 'Never'}")
                 
                 with cols[1]:
