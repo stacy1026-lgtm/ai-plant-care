@@ -229,37 +229,60 @@ with st.expander("📋 View Full Collection"):
 
         
 # --- VIEW FULL COLLECTION ---
-with st.expander("📊 Smart Frequency Analysis", expanded=False):
-    try:
-        # Fetch care history from Supabase
-        logs_res = get_client().table("plant_logs").select("*").execute()
-        hist = pd.DataFrame(logs_res.data)
+with st.expander("📋 View Full Collection"):
+    # 1. Fetch data from view
+    res = get_client().from_("plant_status_view").select("*").execute()
+    df_view = pd.DataFrame(res.data)
 
-        if not hist.empty and 'last_watered' in hist.columns:
-            hist['last_watered'] = pd.to_datetime(hist['last_watered']).dt.date
-            suggestions_found = False
-            
-            # Group by plant_id to analyze each individual plant's history
-            for p_id, p_history in hist.groupby('plant_id'):
-                p_dates = p_history['last_watered'].dropna().sort_values()
-                
-                # We need at least 3 waterings to establish a pattern
-                if len(p_dates) >= 3:
-                    avg_gap = int(p_dates.diff().mean().days)
+    if not df_view.empty:
+        # Pre-process dates
+        df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
+        df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
+        
+        # Calculate next_watered
+        due_date = df_view['last_watered'] + pd.to_timedelta(df_view['frequency'], unit='D')
+        df_view['next_watered'] = due_date.combine(df_view['snooze_date'], max)
+        
+        # 2. Quick Update Section
+        st.subheader("⚡ Quick Update")
+        col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
+        
+        with col1:
+            # FIX: Use df_view['name'] instead of df['name']
+            selected_plant = st.selectbox(
+                "Select the plant to water:",
+                options=df_view['name'].tolist(),
+                index=None,
+                placeholder="Type plant name..."
+            )
+        
+        with col2:
+            if st.button("💧 Water Now", type="primary"):
+                if selected_plant:
+                    # FIX: Use df_view to find the target
+                    target = df_view[df_view['name'] == selected_plant].iloc[0]
+                    get_client().table("plant_logs").insert({
+                        "plant_id": int(target['id']),
+                        "last_watered": str(date.today())
+                    }).execute()
                     
-                    # Match this log data back to the main plant info
-                    match = df[df['id'] == p_id]
+                    # Clear snooze on the plants table
+                    get_client().table("plants").update({"snooze_date": None}).eq("id", int(target['id'])).execute()
                     
-                    if not match.empty:
-                        plant_row = match.iloc[0]
-                        current_f = int(plant_row['frequency'])
-                        
-                        # Check if we've already ignored this specific average
-                        d_val = plant_row.get('dismissed_gap', 0)
-                        d_gap = int(d_val) if pd.notnull(d_val) else 0
-                        
-                        if avg_gap != current_f and avg_gap != d_gap:
-                            suggestions_found = True
+                    st.toast(f"Watered {selected_plant}!")
+                    st.rerun()
+                else:
+                    st.warning("Please select a plant first.")
+
+        # 3. Table Display
+        display_df = df_view[['name', 'frequency', 'last_watered', 'next_watered']].copy()
+        display_df['last_watered'] = display_df['last_watered'].dt.date
+        display_df['next_watered'] = display_df['next_watered'].dt.date
+        
+        display_df.columns = ['Plant Name', 'Frequency', 'Last Watered', 'Next Water']
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+    else:
+        st.write("No plants found.")
                             
                             # --- UI CARD START ---
                             with st.container(border=True):
