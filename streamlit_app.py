@@ -70,7 +70,7 @@ df_to_water, df_all = load_data()
 
 # --- 4. DASHBOARD UI ---
 st.title("🪴 My Plant Garden")
-st.markdown(f"### Total Plants: **{len(df)}**")
+st.markdown(f"### Total Plants: **{len(df_all)}**")
 
 if st.sidebar.button("Logout"):
     st.session_state.user = None
@@ -78,8 +78,8 @@ if st.sidebar.button("Logout"):
 
 # --- 5. PLANT ACTIONS ---
 with st.expander("🚿 Plants to Water", expanded=True):
-    if not df.empty:
-        for _, row in df.iterrows():
+    if not df_to_water.empty:
+        for _, row in df_to_water.iterrows():
             with st.container(border=True):
                 cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
                 
@@ -137,21 +137,21 @@ with st.expander("➕ Add a New Plant"):
 st.divider()
 if not df_all.empty:
     with st.expander("💀 Plant Cemetery (Remove a Plant)"):
-        if not df.empty:
+        if not df_all.empty:
             # Create a copy to avoid mutating the original dataframe
-            df_delete = df.copy()
+            df_all_delete = df_all.copy()
             
             # Combine columns using the correct database field names
-            df_delete['Display'] = (
-                df_delete['name'] + 
+            df_all_delete['Display'] = (
+                df_all_delete['name'] + 
                 " (Acquired: " + 
-                df_delete['acquisition_date'].astype(str) + 
+                df_all_delete['acquisition_date'].astype(str) + 
                 ")"
             )
             
             selected_label = st.selectbox(
                 "Select the plant that didn't make it:",
-                options=df_delete['Display'].tolist(),
+                options=df_all_delete['Display'].tolist(),
                 index=None,
                 placeholder="Type plant name..."
             )
@@ -160,7 +160,7 @@ if not df_all.empty:
             if selected_label:
                 if st.button("Confirm Removal", type="primary"):
                     # Find the specific row by the display string
-                    target = df_delete[df_delete['Display'] == selected_label].iloc[0]
+                    target = df_all_delete[df_all_delete['Display'] == selected_label].iloc[0]
                     
                     # Delete from Supabase
                     get_client().table("plant_logs").delete().eq("plant_id", int(target['id'])).execute()
@@ -172,9 +172,9 @@ if not df_all.empty:
 with st.expander("📋 View Full Collection"):
     # 1. Fetch data
     data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
-    df = pd.DataFrame(data)
+    df_all = pd.DataFrame(data)
 
-    if not df.empty:
+    if not df_all.empty:
         # 2. Quick Update Section
         st.subheader("⚡ Quick Update")
         col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
@@ -183,7 +183,7 @@ with st.expander("📋 View Full Collection"):
         with col1:
             selected_plant = st.selectbox(
                 "Select the plant to water:",
-                options=df['name'].tolist(),
+                options=df_all['name'].tolist(),
                 index=None,
                 placeholder="Type plant name..."
             )
@@ -192,7 +192,7 @@ with st.expander("📋 View Full Collection"):
             if st.button("💧 Water Now", type="primary"):
                 if selected_plant:
                     # Find the row for the selected plant name
-                    target = df[df['name'] == selected_plant].iloc[0]
+                    target = df_all[df_all['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
                         "plant_id": target['id'],
                         "user_id": st.session_state.user.id,
@@ -204,7 +204,7 @@ with st.expander("📋 View Full Collection"):
                     st.warning("Please select a plant first.")
 
         # 3. Table Display
-        st.table(df[['name', 'frequency']])
+        st.table(df_all[['name', 'frequency']])
     else:
         st.write("No plants found.")            
 # --- VIEW FULL COLLECTION ---
@@ -227,7 +227,7 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                     avg_gap = int(p_dates.diff().mean().days)
                     
                     # Match this log data back to the main plant info
-                    match = df[df['id'] == p_id]
+                    match = df_all[df_all['id'] == p_id]
                     
                     if not match.empty:
                         plant_row = match.iloc[0]
