@@ -71,7 +71,8 @@ df = load_data()
 
 # --- 4. DASHBOARD UI ---
 st.title("🪴 My Plant Garden")
-st.markdown(f"### Total Plants: **{len(df_all)}**")
+total_count = get_client().table("plants").select("*", count="exact").execute().count
+st.markdown(f"### Total Plants: **{total_count}**")
 
 if st.sidebar.button("Logout"):
     st.session_state.user = None
