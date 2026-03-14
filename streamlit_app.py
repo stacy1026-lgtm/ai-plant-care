@@ -57,30 +57,30 @@ def load_data():
     if df_plants.empty:
         return df_plants
 
-    # Fetch logs table for history
-    try:
-        l_res = client.table("plant_logs").select("*").eq("user_id", uid).execute()
-        df_logs = pd.DataFrame(l_res.data)
-        
-        if not df_logs.empty:
-            # Sort locally to avoid API ordering errors
-            df_logs = df_logs.sort_values("last_watered", ascending=False)
-            # Keep only the most recent entry for each plant
-            latest_logs = df_logs.drop_duplicates(subset=["plant_id"])
+    # Fetch logs table
+        try:
+            l_res = client.table("plant_logs").select("plant_id, last_watered").eq("user_id", uid).execute()
+            df_logs = pd.DataFrame(l_res.data)
             
-            # Merge logs into the plants list
-            df_plants = df_plants.merge(
-                latest_logs[['plant_id', 'last_watered', 'snooze_date']], 
-                left_on='id', 
-                right_on='plant_id', 
-                how='left'
-            )
-        else:
+            if not df_logs.empty:
+                # 1. Convert to datetime for sorting
+                df_logs['last_watered'] = pd.to_datetime(df_logs['last_watered'])
+                
+                # 2. Get the MAX date per plant_id
+                latest_logs = df_logs.sort_values('last_watered', ascending=False).drop_duplicates('plant_id')
+                
+                # 3. Merge: 'left' ensures all plants remain, even if they have no logs
+                df_plants = df_plants.merge(
+                    latest_logs, 
+                    left_on='id', 
+                    right_on='plant_id', 
+                    how='left'
+                )
+            else:
+                df_plants['last_watered'] = None
+        except Exception as e:
+            st.error(f"Error loading logs: {e}")
             df_plants['last_watered'] = None
-            df_plants['snooze_date'] = None
-    except:
-        df_plants['last_watered'] = None
-        df_plants['snooze_date'] = None
 
     # Filter out snoozed plants
     if 'snooze_date' in df_plants.columns:
