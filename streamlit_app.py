@@ -88,7 +88,7 @@ with st.expander(f"🚿 Plants to Water ({len(df)})", expanded=True):
                 with cols[0]:
                     st.markdown(f"**{row['name']}** - {row['acquisition_date']}")
                     st.markdown(f"Last watered: {row.get('last_watered') or 'Never'}")
-                    st.caption(f"Due every: {row.get('frequency')}")
+                    st.caption(f"Due every: {row.get('frequency')} days")
                 
                 with cols[1]:
                     if st.button("💧", key=f"w_{row['id']}"):
