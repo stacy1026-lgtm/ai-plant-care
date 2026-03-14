@@ -197,8 +197,8 @@ with st.expander("📋 View Full Collection"):
                     # Find the row for the selected plant name
                     target = df[df['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
-                        "plant_id": target['id'],
-                        "user_id": st.session_state.user.id,
+                        "plant_id": int(target['id']),  # Force Python int
+                        "user_id": str(st.session_state.user.id), # Force as string
                         "last_watered": str(date.today())
                     }).execute()
                     st.toast(f"Watered {selected_plant}!")
@@ -259,14 +259,14 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                         get_client().table("plants").update({
                                             "frequency": avg_gap,
                                             "dismissed_gap": 0
-                                        }).eq("id", p_id).execute()
+                                        }).eq("id", int(p_id)).execute()
                                         st.rerun()
                                         
                                 with btn_cols[1]:
                                     if st.button("✖️", key=f"ignore_{p_id}"):
                                         get_client().table("plants").update({
                                             "dismissed_gap": avg_gap
-                                        }).eq("id", p_id).execute()
+                                        }).eq("id", int(p_id)).execute()
                                         st.rerun()
                             # --- UI CARD END ---
             
