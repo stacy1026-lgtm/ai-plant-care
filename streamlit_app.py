@@ -46,55 +46,25 @@ if st.session_state.user is None:
 
 # --- 3. DATA LOADING LOGIC ---
 def load_data():
-    today = date.today()
     client = get_client()
     uid = st.session_state.user.id
 
-    # Fetch plants table
-    p_res = client.table("plants").select("*").eq("user_id", uid).execute()
-    df_plants = pd.DataFrame(p_res.data)
+    # Fetch the pre-calculated view
+    # Note: Ensure the view includes user_id if you need to filter by it
+    res = client.table("plant_status_view").select("*").eq("user_id", uid).execute()
+    df = pd.DataFrame(res.data)
     
-    if df_plants.empty:
-        return df_plants
+    if df.empty:
+        return df
 
-    # Fetch logs table
-        try:
-            l_res = client.table("plant_logs").select("plant_id, last_watered").eq("user_id", uid).execute()
-            df_logs = pd.DataFrame(l_res.data)
-            
-            if not df_logs.empty:
-                # 1. Convert to datetime for sorting
-                df_logs['last_watered'] = pd.to_datetime(df_logs['last_watered'])
-                
-                # 2. Get the MAX date per plant_id
-                latest_logs = df_logs.sort_values('last_watered', ascending=False).drop_duplicates('plant_id')
-                
-                # 3. Merge: 'left' ensures all plants remain, even if they have no logs
-                df_plants = df_plants.merge(
-                    latest_logs, 
-                    left_on='id', 
-                    right_on='plant_id', 
-                    how='left'
-                )
-            else:
-                df_plants['last_watered'] = None
-        except Exception as e:
-            st.error(f"Error loading logs: {e}")
-            df_plants['last_watered'] = None
-
-    # Filter out snoozed plants
-    if 'snooze_date' in df_plants.columns:
-            # Convert to datetime, coercing errors to NaT (Not a Time)
-            df_plants['snooze_date'] = pd.to_datetime(df_plants['snooze_date'], errors='coerce')
-            
-            # Now compare date.today() (casted to timestamp) against the column
-            today = pd.Timestamp(date.today())
-            
-            # Mask: keep if NaT (not snoozed) OR date is in the past
-            is_not_snoozed = (df_plants['snooze_date'].isna()) | (df_plants['snooze_date'] <= today)
-            df_plants = df_plants[is_not_snoozed]
-        
-    return df_plants
+    # Convert dates for the filtering logic
+    df['snooze_date'] = pd.to_datetime(df['snooze_date'], errors='coerce')
+    
+    # Filter out snoozed plants (keep if NaT or date in past)
+    today = pd.Timestamp(date.today())
+    is_not_snoozed = (df['snooze_date'].isna()) | (df['snooze_date'] <= today)
+    
+    return df[is_not_snoozed]
 
 # Execute data load
 df = load_data()
