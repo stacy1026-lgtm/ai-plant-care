@@ -51,7 +51,7 @@ def load_data():
 
     # Fetch the pre-calculated view
     # Note: Ensure the view includes user_id if you need to filter by it
-    res = client.from_("plant_status_view").select("*").eq("user_id", uid).execute()
+    res = client.from_("plant_status_view").select("*").execute()
     df = pd.DataFrame(res.data)
     
     if df.empty:
