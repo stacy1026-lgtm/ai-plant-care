@@ -16,7 +16,7 @@ now_local = datetime.now(local_tz)
 today_local = now_local.date()
 now_server = datetime.now() # Server defaults to UTC
 
- 2. Display in two clean columns
+# 2. Display in two clean columns
 col_time1, col_time2 = st.columns(2)
 
 with col_time1:
