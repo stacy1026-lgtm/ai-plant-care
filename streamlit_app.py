@@ -139,7 +139,7 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
 
                 with cols[2]:
                     if st.button("😴", key=f"s_{row['id']}"):
-                        snooze_until = str(date.today() + timedelta(days=2))
+                        snooze_until = str(today_local + timedelta(days=2))
                         # Update the 'plants' table directly for the specific plant ID
                         get_client().table("plants").update({
                             "snooze_date": snooze_until
