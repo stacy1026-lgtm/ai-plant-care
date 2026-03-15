@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 from supabase import create_client
-import time
-import pytz
-from datetime import date, timedelta, datetime
 
 # --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
@@ -16,16 +13,6 @@ def get_client():
             st.secrets["key"]
         )
     return st.session_state.supabase
-    
-# 1. Calculate both times
-local_tz = pytz.timezone('US/Eastern') 
-#Uncomment the line below and the display to show and test date and times
-#test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
-now_local = datetime.now(local_tz)
-#Uncomment the line below and the display to show and test date and times
-#now_local = test_time
-today_local = now_local.date()
-now_server = datetime.now() # Server defaults to UTC
 
 # --- 2. AUTHENTICATION ---
 if "user" not in st.session_state:
@@ -197,7 +184,6 @@ with st.expander("📋 View Full Collection"):
 
     if not df_view.empty:
         # Pre-process dates (handling out-of-bounds with coerce)
-        df_view = df_view.sort_values(by='name', ascending=True)
         df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
         df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
 
