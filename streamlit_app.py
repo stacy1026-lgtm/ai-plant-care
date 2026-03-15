@@ -84,7 +84,7 @@ with st.expander(f"🚿 Plants to Water ({len(df)})", expanded=True):
     df_due = pd.DataFrame(res.data)
     
     if not df_due.empty:
-        for _, row in df.iterrows():
+        for _, row in df_due.iterrows():
             with st.container(border=True):
                 cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
                 
