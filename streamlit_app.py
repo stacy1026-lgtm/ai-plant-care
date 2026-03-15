@@ -6,6 +6,29 @@ import pytz
 from datetime import date, timedelta, datetime
 import pandas as pd
 
+# 1. Calculate both times
+local_tz = pytz.timezone('US/Eastern') 
+#Uncomment the line below and the display to show and test date and times
+#test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
+now_local = datetime.now(local_tz)
+#Uncomment the line below and the display to show and test date and times
+#now_local = test_time
+today_local = now_local.date()
+now_server = datetime.now() # Server defaults to UTC
+
+ 2. Display in two clean columns
+col_time1, col_time2 = st.columns(2)
+
+with col_time1:
+    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
+    st.caption(now_local.strftime("%A, %b %d"))
+
+with col_time2:
+    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
+    st.caption(now_server.strftime("%A, %b %d"))
+
+st.divider()
+
 # --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
