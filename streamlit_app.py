@@ -86,8 +86,9 @@ with st.expander(f"🚿 Plants to Water ({len(df)})", expanded=True):
                 cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
                 
                 with cols[0]:
-                    st.markdown(f"**{row['name']}**")
-                    st.caption(f"Last watered: {row.get('last_watered') or 'Never'}")
+                    st.markdown(f"**{row['name']}** - {row['acquisition_date']}")
+                    st.markdown(f"Last watered: {row.get('last_watered') or 'Never'}")
+                    st.caption(f"Due every: {row.get('frequency')} days")
                 
                 with cols[1]:
                     if st.button("💧", key=f"w_{row['id']}"):
@@ -122,7 +123,6 @@ with st.expander("➕ Add a New Plant"):
     with st.form("add_plant_form", clear_on_submit=True):
         new_name = st.text_input("Plant Name")
         new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
-        # Using exact spelling from your schema: 'acquisition_date'
         acq_date = st.date_input("Acquisition Date", value=date.today())
         
         if st.form_submit_button("Add to Collection"):
@@ -133,7 +133,11 @@ with st.expander("➕ Add a New Plant"):
                     "acquisition_date": str(acq_date),
                     "user_id": st.session_state.user.id
                 }).execute()
-                st.rerun()
+                
+                st.success(f"Added {new_name}!")
+                st.rerun() # The trigger runs now; the UI refreshes immediately
+            else:
+                st.warning("Please enter a plant name.")
 
 # --- 7. REMOVAL (CEMETERY) ---
 st.divider()
@@ -179,9 +183,12 @@ with st.expander("📋 View Full Collection"):
     df_view = pd.DataFrame(res.data)
 
     if not df_view.empty:
+        # Pre-process dates (handling out-of-bounds with coerce)
+        df_view = df_view.sort_values(by='name', ascending=True)
         df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
         df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
 
+        # Calculation
         due_date = df_view['last_watered'] + pd.to_timedelta(df_view['frequency'], unit='D')
         df_view['next_watered'] = due_date.combine(df_view['snooze_date'], max)
         
@@ -189,11 +196,11 @@ with st.expander("📋 View Full Collection"):
         st.subheader("⚡ Quick Update")
         col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
         
-        # Use the name directly for the dropdown
         with col1:
+            # Now correctly using df_view
             selected_plant = st.selectbox(
                 "Select the plant to water:",
-                options=df['name'].tolist(),
+                options=df_view['name'].tolist(),
                 index=None,
                 placeholder="Type plant name..."
             )
@@ -201,24 +208,31 @@ with st.expander("📋 View Full Collection"):
         with col2:
             if st.button("💧 Water Now", type="primary"):
                 if selected_plant:
-                    # Find the row for the selected plant name
-                    target = df[df['name'] == selected_plant].iloc[0]
+                    # Now correctly using df_view
+                    target = df_view[df_view['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
                         "plant_id": int(target['id']),
                         "last_watered": str(date.today())
                     }).execute()
+                    
+                    # Optional: reset snooze
+                    get_client().table("plants").update({"snooze_date": None}).eq("id", int(target['id'])).execute()
+                    
                     st.toast(f"Watered {selected_plant}!")
                     st.rerun()
                 else:
                     st.warning("Please select a plant first.")
 
         # 3. Table Display
+        # Format for display: drop the index, keep data
         display_df = df_view[['name', 'frequency', 'last_watered', 'next_watered']].copy()
+        
+        # Ensure dates are formatted for display
         display_df['last_watered'] = display_df['last_watered'].dt.date
         display_df['next_watered'] = display_df['next_watered'].dt.date
 
         display_df.columns = ['Plant Name', 'Frequency', 'Last Watered', 'Next Water']
-        st.dataframe(display_df, use_container_width=True,hide_index=True)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
     else:
         st.write("No plants found.")
 
