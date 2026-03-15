@@ -209,6 +209,8 @@ if not df.empty:
                     
                     st.success(f"{target['name']} removed from your collection.")
                     st.rerun()
+else:
+    st.info("Your garden is currently empty. Add a plant to see it here!")
 
 with st.expander("📋 View Full Collection"):
     # 1. Fetch data
