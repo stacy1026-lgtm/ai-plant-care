@@ -174,8 +174,9 @@ with st.expander("➕ Add a New Plant"):
 st.divider()
 data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
 df = pd.DataFrame(data)
-df = df.sort_values(by='name', ascending=True)
+
 if not df.empty:
+    df = df.sort_values(by='name', ascending=True)
     with st.expander("💀 Plant Cemetery (Remove a Plant)"):
         if not df.empty:
             # Create a copy to avoid mutating the original dataframe
