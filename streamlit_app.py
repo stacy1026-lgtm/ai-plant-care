@@ -16,6 +16,16 @@ def get_client():
             st.secrets["key"]
         )
     return st.session_state.supabase
+    
+# 1. Calculate both times
+local_tz = pytz.timezone('US/Eastern') 
+#Uncomment the line below and the display to show and test date and times
+#test_time = datetime(2026, 3, 6, 1, 0, tzinfo=local_tz)
+now_local = datetime.now(local_tz)
+#Uncomment the line below and the display to show and test date and times
+#now_local = test_time
+today_local = now_local.date()
+now_server = datetime.now() # Server defaults to UTC
 
 # --- 2. AUTHENTICATION ---
 if "user" not in st.session_state:
