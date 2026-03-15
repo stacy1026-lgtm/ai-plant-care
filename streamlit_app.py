@@ -183,9 +183,11 @@ with st.expander("📋 View Full Collection"):
     df_view = pd.DataFrame(res.data)
 
     if not df_view.empty:
+        # Pre-process dates (handling out-of-bounds with coerce)
         df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
         df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
 
+        # Calculation
         due_date = df_view['last_watered'] + pd.to_timedelta(df_view['frequency'], unit='D')
         df_view['next_watered'] = due_date.combine(df_view['snooze_date'], max)
         
@@ -193,11 +195,11 @@ with st.expander("📋 View Full Collection"):
         st.subheader("⚡ Quick Update")
         col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
         
-        # Use the name directly for the dropdown
         with col1:
+            # Now correctly using df_view
             selected_plant = st.selectbox(
                 "Select the plant to water:",
-                options=df['name'].tolist(),
+                options=df_view['name'].tolist(),
                 index=None,
                 placeholder="Type plant name..."
             )
@@ -205,24 +207,31 @@ with st.expander("📋 View Full Collection"):
         with col2:
             if st.button("💧 Water Now", type="primary"):
                 if selected_plant:
-                    # Find the row for the selected plant name
-                    target = df[df['name'] == selected_plant].iloc[0]
+                    # Now correctly using df_view
+                    target = df_view[df_view['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
                         "plant_id": int(target['id']),
                         "last_watered": str(date.today())
                     }).execute()
+                    
+                    # Optional: reset snooze
+                    get_client().table("plants").update({"snooze_date": None}).eq("id", int(target['id'])).execute()
+                    
                     st.toast(f"Watered {selected_plant}!")
                     st.rerun()
                 else:
                     st.warning("Please select a plant first.")
 
         # 3. Table Display
+        # Format for display: drop the index, keep data
         display_df = df_view[['name', 'frequency', 'last_watered', 'next_watered']].copy()
+        
+        # Ensure dates are formatted for display
         display_df['last_watered'] = display_df['last_watered'].dt.date
         display_df['next_watered'] = display_df['next_watered'].dt.date
 
         display_df.columns = ['Plant Name', 'Frequency', 'Last Watered', 'Next Water']
-        st.dataframe(display_df, use_container_width=True,hide_index=True)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
     else:
         st.write("No plants found.")
 
