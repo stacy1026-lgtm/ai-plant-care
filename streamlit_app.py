@@ -126,7 +126,7 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         # 1. Add care entry to logs (Remove user_id from here)
                         get_client().table("plant_logs").insert({
                             "plant_id": row['id'],
-                            "last_watered": str(date.today()),
+                            "last_watered": str(today_local),
                         }).execute()
                         
                         # 2. Clear any existing snooze on the plant itself
