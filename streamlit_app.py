@@ -101,8 +101,8 @@ with st.expander(f"🚿 Plants to Water", expanded=True):
                 # ... (keep your existing UI/button code, just use 'row' from 'df_due')
         else:
             st.info("All plants are happy! No watering needed.")
-    else:
-        st.info("No plants found in collection.")
+        else:
+            st.info("No plants found in collection.")
 
 # --- 6. ADD NEW PLANT ---
 with st.expander("➕ Add a New Plant"):
