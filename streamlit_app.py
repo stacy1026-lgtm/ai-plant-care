@@ -184,6 +184,7 @@ with st.expander("📋 View Full Collection"):
 
     if not df_view.empty:
         # Pre-process dates (handling out-of-bounds with coerce)
+        df_view = df_view.sort_values(by='name', ascending=True)
         df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
         df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
 
