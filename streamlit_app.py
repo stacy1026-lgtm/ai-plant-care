@@ -17,17 +17,17 @@ today_local = now_local.date()
 now_server = datetime.now() # Server defaults to UTC
 
 # 2. Display in two clean columns
-col_time1, col_time2 = st.columns(2)
+#col_time1, col_time2 = st.columns(2)
 
-with col_time1:
-    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
-    st.caption(now_local.strftime("%A, %b %d"))
+#with col_time1:
+#    st.metric("🏠 Your Local Time", today_local.strftime("%I:%M %p"))
+#    st.caption(now_local.strftime("%A, %b %d"))
 
-with col_time2:
-    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
-    st.caption(now_server.strftime("%A, %b %d"))
+#with col_time2:
+#    st.metric("☁️ Server Time (UTC)", now_server.strftime("%I:%M %p"))
+#    st.caption(now_server.strftime("%A, %b %d"))
 
-st.divider()
+#st.divider()
 
 # --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
