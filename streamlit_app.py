@@ -78,31 +78,45 @@ if st.sidebar.button("Logout"):
     st.session_state.user = None
     st.rerun()
 
-with st.expander(f"🚿 Plants to Water", expanded=True):
-    # 1. Fetch fresh status directly from view
-    res = get_client().from_("plant_status_view").select("*").execute()
-    df_status = pd.DataFrame(res.data)
-    
-    if not df_status.empty:
-        # 2. Calculate "Need Water" logic locally
-        df_status['last_watered'] = pd.to_datetime(df_status['last_watered'], errors='coerce')
-        df_status['snooze_date'] = pd.to_datetime(df_status['snooze_date'], errors='coerce')
-        
-        # Calculate next due date
-        due_date = df_status['last_watered'] + pd.to_timedelta(df_status['frequency'], unit='D')
-        df_status['next_watered'] = due_date.combine(df_status['snooze_date'], max)
-        
-        # 3. Filter for plants that are due today or in the past
-        today = pd.Timestamp(date.today())
-        df_due = df_status[df_status['next_watered'] <= today]
-        
-        if not df_due.empty:
-            for _, row in df_due.iterrows():
-                # ... (keep your existing UI/button code, just use 'row' from 'df_due')
-        else:
-            st.info("All plants are happy! No watering needed.")
-        else:
-            st.info("No plants found in collection.")
+# --- 5. PLANT ACTIONS ---
+with st.expander(f"🚿 Plants to Water ({len(df)})", expanded=True):
+    if not df.empty:
+        for _, row in df.iterrows():
+            with st.container(border=True):
+                cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
+                
+                with cols[0]:
+                    st.markdown(f"**{row['name']}** - {row['acquisition_date']}")
+                    st.markdown(f"Last watered: {row.get('last_watered') or 'Never'}")
+                    st.caption(f"Due every: {row.get('frequency')} days")
+                
+                with cols[1]:
+                    if st.button("💧", key=f"w_{row['id']}"):
+                        # 1. Add care entry to logs (Remove user_id from here)
+                        get_client().table("plant_logs").insert({
+                            "plant_id": row['id'],
+                            "last_watered": str(date.today()),
+                        }).execute()
+                        
+                        # 2. Clear any existing snooze on the plant itself
+                        get_client().table("plants").update({
+                            "snooze_date": None
+                        }).eq("id", row['id']).execute()
+                        
+                        st.toast(f"Watered {row['name']}!")
+                        st.rerun()
+
+                with cols[2]:
+                    if st.button("😴", key=f"s_{row['id']}"):
+                        snooze_until = str(date.today() + timedelta(days=2))
+                        # Update the 'plants' table directly for the specific plant ID
+                        get_client().table("plants").update({
+                            "snooze_date": snooze_until
+                        }).eq("id", row['id']).execute()
+                        
+                        st.rerun()
+    else:
+        st.info("No plants need attention right now.")
 
 # --- 6. ADD NEW PLANT ---
 with st.expander("➕ Add a New Plant"):
