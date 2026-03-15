@@ -244,7 +244,7 @@ with st.expander("📋 View Full Collection"):
                     target = df_view[df_view['name'] == selected_plant].iloc[0]
                     get_client().table("plant_logs").insert({
                         "plant_id": int(target['id']),
-                        "last_watered": str(date.today())
+                        "last_watered": str(today_local)
                     }).execute()
                     
                     # Optional: reset snooze
