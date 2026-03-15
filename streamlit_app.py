@@ -80,7 +80,10 @@ if st.sidebar.button("Logout"):
 
 # --- 5. PLANT ACTIONS ---
 with st.expander(f"🚿 Plants to Water ({len(df)})", expanded=True):
-    if not df.empty:
+    res = get_client().from_("plants_due_for_water").select("*").execute()
+    df_due = pd.DataFrame(res.data)
+    
+    if not df_due.empty:
         for _, row in df.iterrows():
             with st.container(border=True):
                 cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
