@@ -154,7 +154,7 @@ with st.expander("➕ Add a New Plant"):
     with st.form("add_plant_form", clear_on_submit=True):
         new_name = st.text_input("Plant Name")
         new_freq = st.number_input("Watering Frequency (Days)", min_value=1, value=7)
-        acq_date = st.date_input("Acquisition Date", value=date.today())
+        acq_date = st.date_input("Acquisition Date", value=today_local)
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
