@@ -119,21 +119,13 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         st.rerun()
 
                 with btn_col2:
-                    if st.button(snooze_text, key=f"s_{row['id']}", use_container_width=True):
+                    if st.button(f"😴 Snooze", key=f"s_{row['id']}", use_container_width=True):
                         snooze_until = str(today_local + timedelta(days=2))
-                        
-                        # Capture the response
-                        response = supabase.table("plants").update({
+                        supabase.table("plants").update({
                             "snooze_date": snooze_until
-                        }).eq("id", row['id']).execute()
+                        }).eq("id", int(row['id'])).execute()
                         
-                        # If this prints 0, the database didn't update anything
-                        st.write(f"Rows affected: {len(response.data)}") 
-                        
-                        if len(response.data) > 0:
-                            st.rerun()
-                        else:
-                            st.error("Update failed. Check RLS policies or ID matching.")
+                        st.rerun()
     else:
         st.info("No plants need attention right now.")
 # --- 6. ADD NEW PLANT ---
