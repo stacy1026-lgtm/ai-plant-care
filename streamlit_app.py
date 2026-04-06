@@ -1,3 +1,11 @@
+import streamlit as st
+import pandas as pd
+from supabase import create_client
+import time
+import pytz
+from datetime import date, timedelta, datetime
+import pandas as pd
+
 st.set_page_config(page_title="Plant Garden", page_icon="🪴", layout="wide")
 
 # Add this block for the custom icon and 'standalone' mobile view
@@ -11,13 +19,7 @@ st.markdown("""
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/main/app_icon_180x180.png">
 """, unsafe_allow_html=True)
 
-import streamlit as st
-import pandas as pd
-from supabase import create_client
-import time
-import pytz
-from datetime import date, timedelta, datetime
-import pandas as pd
+
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
