@@ -36,6 +36,13 @@ def get_login():
 # 3. Execute Login
 user = get_login()
 
+st.write(f"Logged in as: {st.session_state.user.email}")
+st.write(f"Current Session User ID: {st.session_state.user.id}")
+
+res = supabase.table("plants").select("user_id").limit(1).execute()
+if res.data:
+    st.write(f"ID stored in Database: {res.data[0]['user_id']}")
+
 # 4. Your existing Data Loading logic
 @st.cache_data(ttl=600)
 def load_data():
