@@ -123,7 +123,7 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         snooze_until = str(today_local + timedelta(days=2))
                         supabase.table("plants").update({
                             "snooze_date": snooze_until
-                        }).eq("id", row['id']).execute()
+                        }).eq("id", int(row['id'])).execute()
                         
                         st.rerun()
     else:
