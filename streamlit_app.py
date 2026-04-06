@@ -8,15 +8,11 @@ import pandas as pd
 
 st.set_page_config(page_title="Plant Garden", page_icon="🪴", layout="wide")
 
-# Add this block for the custom icon and 'standalone' mobile view
+# This block enables the custom icon and the "standalone" app look on iPhone
 st.markdown("""
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
-    
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png">
 """, unsafe_allow_html=True)
 
 
