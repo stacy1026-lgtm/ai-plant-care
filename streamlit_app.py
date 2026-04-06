@@ -5,6 +5,53 @@ import time
 import pytz
 from datetime import date, timedelta, datetime
 import pandas as pd
+import streamlit as st
+from supabase import create_client
+
+# 1. Initialize Supabase Client (Matches your lowercase 'url'/'key' secrets)
+@st.cache_resource
+def get_client():
+    return create_client(
+        st.secrets["url"], 
+        st.secrets["key"]
+    )
+
+supabase = get_client()
+
+# 2. Silent Login Function
+def get_login():
+    if "user" not in st.session_state:
+        try:
+            # Uses the credentials from your Streamlit Secrets
+            auth_res = supabase.auth.sign_in_with_password({
+                "email": st.secrets["MY_USER_EMAIL"], 
+                "password": st.secrets["MY_USER_PASSWORD"]
+            })
+            st.session_state.user = auth_res.user
+        except Exception as e:
+            st.error(f"Authentication failed. Check your Secrets: {e}")
+            st.stop()
+    return st.session_state.user
+
+# 3. Execute Login
+user = get_login()
+
+# 4. Your existing Data Loading logic
+@st.cache_data(ttl=600)
+def load_data():
+    # Now this uses the already initialized 'supabase' client
+    response = supabase.table("plants").select("*").execute()
+    return response.data
+
+# Main App Logic
+st.title("Gardening Dashboard")
+df = load_data()
+
+if df:
+    st.write(f"Showing data for {len(df)} plants.")
+    st.dataframe(df)
+else:
+    st.info("No plants found in the database.")
 
 
 
