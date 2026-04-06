@@ -85,10 +85,6 @@ st.title("🪴 My Plant Garden")
 total_count = supabase.table("plants").select("*", count="exact").execute().count
 st.markdown(f"### Total Plants: **{total_count}**")
 
-if st.sidebar.button("Logout"):
-    st.session_state.user = None
-    st.rerun()
-
 # --- 5. PLANT ACTIONS ---
 res = supabase.from_("plants_due_for_water").select("*").execute()
 df_due = pd.DataFrame(res.data)
