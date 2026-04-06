@@ -1,4 +1,11 @@
 import streamlit as st
+import pandas as pd
+from supabase import create_client
+import time
+import pytz
+from datetime import date, timedelta, datetime
+import pandas as pd
+
 
 # MUST BE THE FIRST ST COMMAND
 st.set_page_config(page_title="Plant Garden", page_icon="🪴", layout="wide")
@@ -13,21 +20,6 @@ st.markdown(f"""
     <link rel="shortcut icon" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-""", unsafe_allow_html=True)
-
-import pandas as pd
-from supabase import create_client
-import time
-import pytz
-from datetime import date, timedelta, datetime
-import pandas as pd
-
-st.markdown("""
-    <head>
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png?v=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    </head>
 """, unsafe_allow_html=True)
 
 
