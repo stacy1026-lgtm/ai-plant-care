@@ -1,10 +1,14 @@
 st.set_page_config(page_title="Plant Garden", page_icon="🪴", layout="wide")
 
-# This injection tells iOS the app is "Web App Capable"
+# Add this block for the custom icon and 'standalone' mobile view
 st.markdown("""
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/apple-touch-icon.png">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
+    
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="URL_TO_YOUR_GITHUB_IMAGE_RAW">
+    
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/apple-touch-icon.png">
 """, unsafe_allow_html=True)
 
 import streamlit as st
