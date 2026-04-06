@@ -191,48 +191,64 @@ if not df.empty:
                     st.success(f"{target['name']} removed from your collection.")
                     st.rerun()
 
-with st.expander("📋 View Full Collection", expanded=False):
-    # 1. Fetch and sort data
-    res_all = supabase.from_("plant_status_view").select("*").execute()
-    df_all = pd.DataFrame(res_all.data)
+with st.expander("📋 View Full Collection"):
+    # 1. Fetch data
+    res = supabase.from_("plant_status_view").select("*").execute()
+    df_view = pd.DataFrame(res.data)
 
-    if not df_all.empty:
-        df_all = df_all.sort_values(by='name')
-        
-        # 2. Search/Filter bar (Great for 166+ plants!)
-        search = st.text_input("🔍 Search by name...", placeholder="Spider plant...", label_visibility="collapsed")
-        
-        # 3. Create the Cards
-        for _, plant in df_all.iterrows():
-            # If searching, skip non-matches
-            if search and search.lower() not in plant['name'].lower():
-                continue
-                
-            # Logic for a "Health Bar"
-            # (Assuming frequency is an int and last_watered exists)
-            last = pd.to_datetime(plant['last_watered']).date()
-            due = last + timedelta(days=int(plant['frequency']))
-            days_left = (due - today_local).days
-            
-            # The Card UI
-            with st.container(border=True):
-                col_info, col_status = st.columns([2, 1])
-                
-                with col_info:
-                    st.markdown(f"**{plant['name']}**")
-                    st.caption(f"Every {plant['frequency']} days")
-                
-                with col_status:
-                    if days_left <= 0:
-                        st.error("Needs Water")
-                    else:
-                        st.success(f"{days_left}d left")
+    if not df_view.empty:
+        # Pre-process dates (handling out-of-bounds with coerce)
+        df_view = df_view.sort_values(by='name', ascending=True)
+        df_view['last_watered'] = pd.to_datetime(df_view['last_watered'], errors='coerce')
+        df_view['snooze_date'] = pd.to_datetime(df_view['snooze_date'], errors='coerce')
 
-                # A small progress bar showing watering cycle progress
-                progress = max(0, min(100, (days_left / plant['frequency']) * 100))
-                st.progress(progress / 100)
+        # Calculation
+        due_date = df_view['last_watered'] + pd.to_timedelta(df_view['frequency'], unit='D')
+        df_view['next_watered'] = due_date.combine(df_view['snooze_date'], max)
+        
+        # 2. Quick Update Section
+        st.subheader("⚡ Quick Update")
+        col1, col2 = st.columns([3, 1], vertical_alignment="bottom")
+        
+        with col1:
+            # Now correctly using df_view
+            selected_plant = st.selectbox(
+                "Select the plant to water:",
+                options=df_view['name'].tolist(),
+                index=None,
+                placeholder="Type plant name..."
+            )
+        
+        with col2:
+            if st.button("💧 Water Now", type="primary"):
+                if selected_plant:
+                    # Now correctly using df_view
+                    target = df_view[df_view['name'] == selected_plant].iloc[0]
+                    supabase.table("plant_logs").insert({
+                        "plant_id": int(target['id']),
+                        "last_watered": str(today_local)
+                    }).execute()
+                    
+                    # Optional: reset snooze
+                    supabase.table("plants").update({"snooze_date": None}).eq("id", int(target['id'])).execute()
+                    
+                    st.toast(f"Watered {selected_plant}!")
+                    st.rerun()
+                else:
+                    st.warning("Please select a plant first.")
+
+        # 3. Table Display
+        # Format for display: drop the index, keep data
+        display_df = df_view[['name', 'frequency', 'last_watered', 'next_watered']].copy()
+        
+        # Ensure dates are formatted for display
+        display_df['last_watered'] = display_df['last_watered'].dt.date
+        display_df['next_watered'] = display_df['next_watered'].dt.date
+
+        display_df.columns = ['Plant Name', 'Frequency', 'Last Watered', 'Next Water']
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
     else:
-        st.info("Your garden is empty. Add a plant below!")
+        st.write("No plants found.")
 
 
         
