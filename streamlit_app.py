@@ -5,27 +5,7 @@ import time
 import pytz
 from datetime import date, timedelta, datetime
 import pandas as pd
-import streamlit as st
-from supabase import create_client
 
-# 1. Initialize the client using your secrets
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
-supabase = create_client(url, key)
-
-# 2. Define the login function
-def get_login():
-    if "user" not in st.session_state:
-        # We use the 'supabase' variable defined above
-        auth_res = supabase.auth.sign_in_with_password({
-            "email": st.secrets["MY_USER_EMAIL"], 
-            "password": st.secrets["MY_USER_PASSWORD"]
-        })
-        st.session_state.user = auth_res.user
-    return st.session_state.user
-
-# 3. Call the function
-user = get_login()
 
 
 
