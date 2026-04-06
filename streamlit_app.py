@@ -89,28 +89,28 @@ st.markdown(f"### Total Plants: **{total_count}**")
 res = supabase.from_("plants_due_for_water").select("*").execute()
 df_due = pd.DataFrame(res.data)
 total_due = len(df_due)
+
 with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
-    res = supabase.from_("plants_due_for_water").select("*").execute()
-    df_due = pd.DataFrame(res.data)
     if not df_due.empty:
         for _, row in df_due.iterrows():
             with st.container(border=True):
-                cols = st.columns([2, 0.6, 0.6], vertical_alignment="center")
+                # Plant Info Header
+                st.markdown(f"### {row['name']}")
+                st.caption(f"📅 Acquired: {row['acquisition_date']} | 🔄 Every {row.get('frequency')} days")
+                st.markdown(f"Last watered: **{row.get('last_watered') or 'Never'}**")
                 
-                with cols[0]:
-                    st.markdown(f"**{row['name']}** - {row['acquisition_date']}")
-                    st.markdown(f"Last watered on {row.get('last_watered') or 'Never'}")
-                    st.caption(f"Due every {row.get('frequency')} days")
+                # Full-width Button Row
+                # We use two columns here so the buttons sit side-by-side, 
+                # but they will each fill 50% of the screen width.
+                btn_col1, btn_col2 = st.columns(2)
                 
-                with cols[1]:
-                    if st.button("💧", key=f"w_{row['id']}"):
-                        # 1. Add care entry to logs (Remove user_id from here)
+                with btn_col1:
+                    if st.button(f"💧 Water", key=f"w_{row['id']}", use_container_width=True, type="primary"):
                         supabase.table("plant_logs").insert({
                             "plant_id": row['id'],
                             "last_watered": str(today_local),
                         }).execute()
                         
-                        # 2. Clear any existing snooze on the plant itself
                         supabase.table("plants").update({
                             "snooze_date": None
                         }).eq("id", row['id']).execute()
@@ -118,10 +118,9 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         st.toast(f"Watered {row['name']}!")
                         st.rerun()
 
-                with cols[2]:
-                    if st.button("😴", key=f"s_{row['id']}"):
+                with btn_col2:
+                    if st.button(f"😴 Snooze", key=f"s_{row['id']}", use_container_width=True):
                         snooze_until = str(today_local + timedelta(days=2))
-                        # Update the 'plants' table directly for the specific plant ID
                         supabase.table("plants").update({
                             "snooze_date": snooze_until
                         }).eq("id", row['id']).execute()
@@ -129,7 +128,6 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         st.rerun()
     else:
         st.info("No plants need attention right now.")
-
 # --- 6. ADD NEW PLANT ---
 with st.expander("➕ Add a New Plant"):
     with st.form("add_plant_form", clear_on_submit=True):
