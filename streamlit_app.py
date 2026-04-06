@@ -14,24 +14,6 @@ import pytz
 from datetime import date, timedelta, datetime
 import pandas as pd
 
-
-# MUST BE THE FIRST ST COMMAND
-st.set_page_config(page_title="Plant Garden", page_icon="🪴", layout="wide")
-
-# This version uses an 'id' and 'rel' that iOS prioritizes
-st.markdown(f"""
-    <style>
-        /* This hides the top decoration bar to make it look more like a native app */
-        header {{visibility: hidden;}}
-    </style>
-    <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png?v={pd.Timestamp.now().strftime('%s')}">
-    <link rel="shortcut icon" href="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-""", unsafe_allow_html=True)
-
-
-
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
 #Uncomment the line below and the display to show and test date and times
