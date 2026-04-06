@@ -110,6 +110,7 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         supabase.table("plants").update({"snooze_date": None}).eq("id", row['id']).execute()
                         st.toast(f"Watered {row['name']}!")
                         # This rerun will trigger load_data() again, hiding the plant
+                        time.sleep(0.5)
                         st.rerun()
 
                 with btn_col2:
