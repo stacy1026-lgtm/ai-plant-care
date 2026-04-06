@@ -39,8 +39,8 @@ def get_login():
 # 3. Execute Login
 user = get_login()
 
-st.write(f"Logged in as: {st.session_state.user.email}")
-st.write(f"Current Session User ID: {st.session_state.user.id}")
+st.write(f"Logged in as: {st.session_state.user['email']}")
+st.write(f"My User ID: {st.session_state.user['id']}")
 
 res = supabase.table("plants").select("user_id").limit(1).execute()
 if res.data:
