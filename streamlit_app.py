@@ -22,14 +22,17 @@ supabase = get_client()
 def get_login():
     if "user" not in st.session_state:
         try:
-            # Uses the credentials from your Streamlit Secrets
-            auth_res = supabase.auth.sign_in_with_password({
+            # Get the response object
+            response = supabase.auth.sign_in_with_password({
                 "email": st.secrets["MY_USER_EMAIL"], 
                 "password": st.secrets["MY_USER_PASSWORD"]
             })
-            st.session_state.user = auth_res.user
+            
+            # Extract the user from the response
+            st.session_state.user = response.user
+            
         except Exception as e:
-            st.error(f"Authentication failed. Check your Secrets: {e}")
+            st.error(f"Authentication failed: {e}")
             st.stop()
     return st.session_state.user
 
