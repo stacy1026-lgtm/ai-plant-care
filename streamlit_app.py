@@ -43,18 +43,6 @@ def load_data():
     response = supabase.table("plants").select("*").execute()
     return response.data
 
-# Main App Logic
-st.title("Gardening Dashboard")
-df = load_data()
-
-if df:
-    st.write(f"Showing data for {len(df)} plants.")
-    st.dataframe(df)
-else:
-    st.info("No plants found in the database.")
-
-
-
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
