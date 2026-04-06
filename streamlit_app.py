@@ -1,3 +1,12 @@
+st.set_page_config(page_title="Plant Garden", page_icon="🪴", layout="wide")
+
+# This injection tells iOS the app is "Web App Capable"
+st.markdown("""
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="URL_TO_YOUR_GITHUB_IMAGE_RAW">
+""", unsafe_allow_html=True)
+
 import streamlit as st
 import pandas as pd
 from supabase import create_client
