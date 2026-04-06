@@ -1,12 +1,4 @@
 import streamlit as st
-
-# MUST BE THE FIRST STREAMLIT COMMAND
-st.set_page_config(
-    page_title="My Plant App",
-    page_icon="https://raw.githubusercontent.com/stacy1026-lgtm/ai-plant-care/refs/heads/Supabase_dev/app_icon_180x180.png",  # Local file path
-    layout="wide"
-)
-
 import pandas as pd
 from supabase import create_client
 import time
