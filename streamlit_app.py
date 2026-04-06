@@ -39,20 +39,6 @@ def get_login():
 # 3. Execute Login
 user = get_login()
 
-st.write(f"Logged in as: {st.session_state.user.user.email}")
-st.write(f"User UUID: {st.session_state.user.user.id}")
-
-res = supabase.table("plants").select("user_id").limit(1).execute()
-if res.data:
-    st.write(f"ID stored in Database: {res.data[0]['user_id']}")
-
-# 4. Your existing Data Loading logic
-@st.cache_data(ttl=600)
-def load_data():
-    # Now this uses the already initialized 'supabase' client
-    response = supabase.table("plants").select("*").execute()
-    return response.data
-
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
