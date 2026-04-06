@@ -21,23 +21,17 @@ supabase = get_client()
 # 2. Silent Login Function
 def get_login():
     if "user" not in st.session_state:
-        try:
-            # Get the response object
-            response = supabase.auth.sign_in_with_password({
-                "email": st.secrets["MY_USER_EMAIL"], 
-                "password": st.secrets["MY_USER_PASSWORD"]
-            })
-            
-            # Extract the user from the response
-            st.session_state.user = response.user
-            
-        except Exception as e:
-            st.error(f"Authentication failed: {e}")
-            st.stop()
+        response = supabase.auth.sign_in_with_password({
+            "email": st.secrets["MY_USER_EMAIL"], 
+            "password": st.secrets["MY_USER_PASSWORD"]
+        })
+        # Note: We are saving the nested user object
+        st.session_state.user = response.user 
     return st.session_state.user
 
-# 3. Execute Login
 user = get_login()
+# Latest SDK usually uses this:
+st.write(f"Email: {user.email}")
 
 
 # 1. Calculate both times
