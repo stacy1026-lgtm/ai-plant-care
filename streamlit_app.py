@@ -105,7 +105,7 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                 btn_col1, btn_col2 = st.columns(2)
                 
                 with btn_col1:
-                    if st.button(f"💧 Water", key=f"w_{row['id']}", use_container_width=True, type="primary"):
+                    if st.button(f"💧 Water", key=f"w_{row['id']}", use_container_width=True):
                         supabase.table("plant_logs").insert({
                             "plant_id": row['id'],
                             "last_watered": str(today_local),
