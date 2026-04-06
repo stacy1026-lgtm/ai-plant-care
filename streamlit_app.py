@@ -42,6 +42,11 @@ def load_data(client):
 
 df_response = load_data(supabase_client)
 
+st.write("Current User UUID:", user.id)
+# Then check if ANY plants exist regardless of user (Temporary test only!)
+test_res = supabase_client.table("plants").select("*", count="exact").limit(1).execute()
+st.write("Total plants in table (unfiltered):", test_res.count)
+
 
 # 1. Calculate both times
 local_tz = pytz.timezone('US/Eastern') 
