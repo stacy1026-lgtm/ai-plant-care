@@ -90,9 +90,6 @@ res = supabase.from_("plants_due_for_water").select("*").execute()
 df_due = pd.DataFrame(res.data)
 total_due = len(df_due)
 
-# Temporary Debugging Line
-st.write(supabase.from_("plants_due_for_water").select("name, snooze_date").execute().data)
-
 with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
     if not df_due.empty:
         for _, row in df_due.iterrows():
