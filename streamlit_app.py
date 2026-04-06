@@ -9,8 +9,8 @@ import streamlit as st
 from supabase import create_client
 
 # 1. Initialize the client using your secrets
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
+url = st.secrets["URL"]
+key = st.secrets["KEY"]
 supabase = create_client(url, key)
 
 # 2. Define the login function
