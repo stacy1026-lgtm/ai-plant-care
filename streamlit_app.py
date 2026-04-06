@@ -32,47 +32,32 @@ now_server = datetime.now() # Server defaults to UTC
 # --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
+@st.cache_resource
 def get_client():
-    if "supabase" not in st.session_state:
-        st.session_state.supabase = create_client(
-            st.secrets["url"], 
-            st.secrets["key"]
-        )
-    return st.session_state.supabase
+    return create_client(st.secrets["url"], st.secrets["key"])
 
-# --- 2. AUTHENTICATION ---
+supabase = get_client()
+
+# --- 2. SILENT AUTHENTICATION ---
 if "user" not in st.session_state:
-    st.session_state.user = None
+    try:
+        # Perform the login behind the scenes
+        res = supabase.auth.sign_in_with_password({
+            "email": st.secrets["MY_USER_EMAIL"], 
+            "password": st.secrets["MY_USER_PASSWORD"]
+        })
+        st.session_state.user = res.user
+        # Link the session token to the client so RLS works
+        supabase.postgrest.auth(res.session.access_token)
+    except Exception as e:
+        st.error(f"Silent login failed: {e}")
+        st.stop()
 
-if st.session_state.user is None:
-    tab1, tab2 = st.tabs(["Login", "Sign Up"])
-    with tab1:
-        with st.form("login"):
-            email = st.text_input("Email")
-            pw = st.text_input("Password", type="password")
-            if st.form_submit_button("Login"):
-                try:
-                    res = get_client().auth.sign_in_with_password({"email": email, "password": pw})
-                    st.session_state.user = res.user
-                    get_client().auth.set_session(res.session.access_token, res.session.refresh_token)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Login failed: {e}")
-    with tab2:
-        with st.form("signup"):
-            new_email = st.text_input("New Email")
-            new_pw = st.text_input("New Password", type="password")
-            if st.form_submit_button("Sign Up"):
-                try:
-                    get_client().auth.sign_up({"email": new_email, "password": new_pw})
-                    st.success("Check your email for a confirmation link!")
-                except Exception as e:
-                    st.error(f"Signup failed: {e}")
-    st.stop()
+user = st.session_state.user
 
 # --- 3. DATA LOADING LOGIC ---
 def load_data():
-    client = get_client()
+    client = supabase
     uid = st.session_state.user.id
 
     # Fetch the pre-calculated view
@@ -97,7 +82,7 @@ df = load_data()
 
 # --- 4. DASHBOARD UI ---
 st.title("🪴 My Plant Garden")
-total_count = get_client().table("plants").select("*", count="exact").execute().count
+total_count = supabase.table("plants").select("*", count="exact").execute().count
 st.markdown(f"### Total Plants: **{total_count}**")
 
 if st.sidebar.button("Logout"):
@@ -105,11 +90,11 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # --- 5. PLANT ACTIONS ---
-res = get_client().from_("plants_due_for_water").select("*").execute()
+res = supabase.from_("plants_due_for_water").select("*").execute()
 df_due = pd.DataFrame(res.data)
 total_due = len(df_due)
 with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
-    res = get_client().from_("plants_due_for_water").select("*").execute()
+    res = supabase.from_("plants_due_for_water").select("*").execute()
     df_due = pd.DataFrame(res.data)
     if not df_due.empty:
         for _, row in df_due.iterrows():
@@ -124,13 +109,13 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                 with cols[1]:
                     if st.button("💧", key=f"w_{row['id']}"):
                         # 1. Add care entry to logs (Remove user_id from here)
-                        get_client().table("plant_logs").insert({
+                        supabase.table("plant_logs").insert({
                             "plant_id": row['id'],
                             "last_watered": str(today_local),
                         }).execute()
                         
                         # 2. Clear any existing snooze on the plant itself
-                        get_client().table("plants").update({
+                        supabase.table("plants").update({
                             "snooze_date": None
                         }).eq("id", row['id']).execute()
                         
@@ -141,7 +126,7 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                     if st.button("😴", key=f"s_{row['id']}"):
                         snooze_until = str(today_local + timedelta(days=2))
                         # Update the 'plants' table directly for the specific plant ID
-                        get_client().table("plants").update({
+                        supabase.table("plants").update({
                             "snooze_date": snooze_until
                         }).eq("id", row['id']).execute()
                         
@@ -158,7 +143,7 @@ with st.expander("➕ Add a New Plant"):
         
         if st.form_submit_button("Add to Collection"):
             if new_name:
-                get_client().table("plants").insert({
+                supabase.table("plants").insert({
                     "name": new_name,
                     "frequency": int(new_freq),
                     "acquisition_date": str(acq_date),
@@ -172,7 +157,7 @@ with st.expander("➕ Add a New Plant"):
 
 # --- 7. REMOVAL (CEMETERY) ---
 st.divider()
-data = get_client().table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
+data = supabase.table("plants").select("*").eq("user_id", st.session_state.user.id).execute().data
 df = pd.DataFrame(data)
 
 if not df.empty:
@@ -204,15 +189,15 @@ if not df.empty:
                     target = df_delete[df_delete['Display'] == selected_label].iloc[0]
                     
                     # Delete from Supabase
-                    get_client().table("plant_logs").delete().eq("plant_id", int(target['id'])).execute()
-                    get_client().table("plants").delete().eq("id", int(target['id'])).execute()
+                    supabase.table("plant_logs").delete().eq("plant_id", int(target['id'])).execute()
+                    supabase.table("plants").delete().eq("id", int(target['id'])).execute()
                     
                     st.success(f"{target['name']} removed from your collection.")
                     st.rerun()
 
 with st.expander("📋 View Full Collection"):
     # 1. Fetch data
-    res = get_client().from_("plant_status_view").select("*").execute()
+    res = supabase.from_("plant_status_view").select("*").execute()
     df_view = pd.DataFrame(res.data)
 
     if not df_view.empty:
@@ -243,13 +228,13 @@ with st.expander("📋 View Full Collection"):
                 if selected_plant:
                     # Now correctly using df_view
                     target = df_view[df_view['name'] == selected_plant].iloc[0]
-                    get_client().table("plant_logs").insert({
+                    supabase.table("plant_logs").insert({
                         "plant_id": int(target['id']),
                         "last_watered": str(today_local)
                     }).execute()
                     
                     # Optional: reset snooze
-                    get_client().table("plants").update({"snooze_date": None}).eq("id", int(target['id'])).execute()
+                    supabase.table("plants").update({"snooze_date": None}).eq("id", int(target['id'])).execute()
                     
                     st.toast(f"Watered {selected_plant}!")
                     st.rerun()
@@ -275,7 +260,7 @@ with st.expander("📋 View Full Collection"):
 with st.expander("📊 Smart Frequency Analysis", expanded=False):
     try:
         # Fetch care history from Supabase
-        logs_res = get_client().table("plant_logs").select("*").execute()
+        logs_res = supabase.table("plant_logs").select("*").execute()
         hist = pd.DataFrame(logs_res.data)
 
         if not hist.empty and 'last_watered' in hist.columns:
@@ -317,7 +302,7 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                 
                                 with btn_cols[0]:
                                     if st.button("✔️", key=f"accept_{p_id}"):
-                                        get_client().table("plants").update({
+                                        supabase.table("plants").update({
                                             "frequency": avg_gap,
                                             "dismissed_gap": 0
                                         }).eq("id", int(p_id)).execute()
@@ -325,7 +310,7 @@ with st.expander("📊 Smart Frequency Analysis", expanded=False):
                                         
                                 with btn_cols[1]:
                                     if st.button("✖️", key=f"ignore_{p_id}"):
-                                        get_client().table("plants").update({
+                                        supabase.table("plants").update({
                                             "dismissed_gap": avg_gap
                                         }).eq("id", int(p_id)).execute()
                                         st.rerun()
