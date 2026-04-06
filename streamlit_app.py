@@ -19,19 +19,28 @@ def get_client():
 supabase = get_client()
 
 # 2. Silent Login Function
-def get_login():
+def get_login(client):
     if "user" not in st.session_state:
-        response = supabase.auth.sign_in_with_password({
+        # Use the client passed into the function
+        res = client.auth.sign_in_with_password({
             "email": st.secrets["MY_USER_EMAIL"], 
             "password": st.secrets["MY_USER_PASSWORD"]
         })
-        # Note: We are saving the nested user object
-        st.session_state.user = response.user 
+        st.session_state.user = res.user
     return st.session_state.user
 
-user = get_login()
-# Latest SDK usually uses this:
-st.write(f"Email: {user.email}")
+# 1. Create the client once
+supabase_client = get_client()
+
+# 2. Log in using THAT client
+user = get_login(supabase_client)
+
+# 3. Pass THAT SAME client to your data loader
+def load_data(client):
+    # This ensures the 'Authenticated' header is sent
+    return client.table("plants").select("*").execute()
+
+df_response = load_data(supabase_client)
 
 
 # 1. Calculate both times
