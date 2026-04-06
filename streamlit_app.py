@@ -85,19 +85,23 @@ st.title("🪴 My Plant Garden")
 total_count = supabase.table("plants").select("*", count="exact").execute().count
 st.markdown(f"### Total Plants: **{total_count}**")
 
-# --- 5. PLANT ACTIONS (FIXED TO HIDE SNOOZED) ---
-# Use 'df' (the filtered data from load_data) instead of a new supabase call
-df_due = df.copy() 
+# --- 5. PLANT ACTIONS ---
+res = supabase.from_("plants_due_for_water").select("*").execute()
+df_due = pd.DataFrame(res.data)
 total_due = len(df_due)
 
 with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
     if not df_due.empty:
         for _, row in df_due.iterrows():
             with st.container(border=True):
+                # Plant Info Header
                 st.markdown(f"### {row['name']}")
                 st.caption(f"📅 Acquired: {row['acquisition_date']} | 🔄 Every {row.get('frequency')} days")
                 st.markdown(f"Last watered: **{row.get('last_watered') or 'Never'}**")
                 
+                # Full-width Button Row
+                # We use two columns here so the buttons sit side-by-side, 
+                # but they will each fill 50% of the screen width.
                 btn_col1, btn_col2 = st.columns(2)
                 
                 with btn_col1:
@@ -107,10 +111,11 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                             "last_watered": str(today_local),
                         }).execute()
                         
-                        supabase.table("plants").update({"snooze_date": None}).eq("id", row['id']).execute()
+                        supabase.table("plants").update({
+                            "snooze_date": None
+                        }).eq("id", row['id']).execute()
+                        
                         st.toast(f"Watered {row['name']}!")
-                        # This rerun will trigger load_data() again, hiding the plant
-                        time.sleep(0.5)
                         st.rerun()
 
                 with btn_col2:
@@ -118,8 +123,8 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                         snooze_until = str(today_local + timedelta(days=2))
                         supabase.table("plants").update({
                             "snooze_date": snooze_until
-                        }).eq("id", row['id']).execute()
-                        # This rerun will trigger load_data() again, hiding the plant
+                        }).eq("id", int(row['id'])).execute()
+                        
                         st.rerun()
     else:
         st.info("No plants need attention right now.")
