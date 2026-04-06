@@ -8,6 +8,23 @@ import pandas as pd
 import streamlit as st
 from supabase import create_client
 
+# 1. Access your single user's credentials from Streamlit Secrets
+USER_EMAIL = st.secrets["MY_USER_EMAIL"]
+USER_PASSWORD = st.secrets["MY_USER_PASSWORD"]
+
+def get_login():
+    if "user" not in st.session_state:
+        # Silently log in behind the scenes
+        auth_res = get_client().auth.sign_in_with_password({
+            "email": USER_EMAIL, 
+            "password": USER_PASSWORD
+        })
+        st.session_state.user = auth_res.user
+    return st.session_state.user
+
+# Now just call this at the top of your app
+user = get_login()
+
 
 
 # 1. Calculate both times
