@@ -108,7 +108,6 @@ with st.expander(f"🚿 Plants to Water ({total_due})", expanded=True):
                     if st.button(f"💧 Water", key=f"w_{row['id']}", use_container_width=True):
                         supabase.table("plant_logs").insert({
                             "plant_id": row['id'],
-                            "last_watered": str(today_local),
                         }).execute()
                         
                         supabase.table("plants").update({
@@ -223,8 +222,7 @@ with st.expander("📋 View Full Collection"):
                     # Now correctly using df_view
                     target = df_view[df_view['name'] == selected_plant].iloc[0]
                     supabase.table("plant_logs").insert({
-                        "plant_id": int(target['id']),
-                        "last_watered": str(today_local)
+                        "plant_id": int(target['id'])
                     }).execute()
                     
                     # Optional: reset snooze
