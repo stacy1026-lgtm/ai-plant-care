@@ -28,7 +28,7 @@ now_server = datetime.now() # Server defaults to UTC
 #    st.caption(now_server.strftime("%A, %b %d"))
 
 #st.divider()
-
+st.warning("⚠️ YOU ARE IN THE DEVELOPMENT ENVIRONMENT")
 # --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(page_title="Plant Garden", page_icon="🪴")
 
